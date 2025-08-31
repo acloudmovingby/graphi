@@ -1,0 +1,18 @@
+//| mill-version: 1.0.3
+//// SNIPPET:BUILD
+package build
+import mill.*, scalalib.*, publish.*
+
+object graphi extends ScalaModule, SonatypeCentralPublishModule {
+  def scalaVersion = "3.7.1"
+  def publishVersion = "0.0.1"
+
+  def pomSettings = PomSettings(
+    description = "Hello",
+    organization = "acloudmovingby",
+    url = "https://github.com/acloudmovingby/graphi",
+    licenses = Seq(License.MIT),
+    versionControl = VersionControl.github("acloudmovingby", "graphi"),
+    developers = Seq(Developer("acloudmovingby", "Chris Oates", "https://github.com/acloudmovingby"))
+  )
+}
