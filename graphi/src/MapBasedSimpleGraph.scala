@@ -29,4 +29,40 @@ class MapBasedSimpleGraphImmutable[A](private val adjMap: Map[A, Set[A]] = Map.e
 
 	/** Returns the set of neighbors of the given node. Throws NoSuchElementException if the node doesn't exist. */
 	def getNeighbors(node: A): Set[A] = adjMap(node)
+	
+	def djikstra(start: A, end: A): Option[(List[A], Int)] = {
+		if (!adjMap.contains(start)) throw new NoSuchElementException(s"The node $start doesn't exist")
+		else if (!adjMap.contains(end)) throw new NoSuchElementException(s"The node $end doesn't exist")
+		else {
+			// Djikstra's algorithm
+			import scala.collection.mutable
+			val distances = mutable.Map[A, Int](start -> 0)
+			val previous = mutable.Map[A, A]()
+			val pq = mutable.PriorityQueue[(A, Int)]()(Ordering.by(-_._2))
+			pq.enqueue((start, 0))
+
+			while (pq.nonEmpty) {
+				val (currentNode, currentDist) = pq.dequeue()
+				if (currentNode == end) {
+					// build path
+					var path = List[A](end)
+					var step = end
+					while (previous.contains(step)) {
+						step = previous(step)
+						path = step :: path
+					}
+					return Some((path, currentDist))
+				}
+				for (neighbor <- adjMap(currentNode)) {
+					val newDist = currentDist + 1 // all edges have weight 1
+					if (newDist < distances.getOrElse(neighbor, Int.MaxValue)) {
+						distances(neighbor) = newDist
+						previous(neighbor) = currentNode
+						pq.enqueue((neighbor, newDist))
+					}
+				}
+			}
+			None // no path found
+		}
+	}
 }
