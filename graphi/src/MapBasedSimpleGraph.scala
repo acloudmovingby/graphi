@@ -38,7 +38,7 @@ class MapBasedSimpleGraphImmutable[A](private val adjMap: Map[A, Set[A]] = Map.e
 			import scala.collection.mutable
 			val distances = mutable.Map[A, Int](start -> 0)
 			val previous = mutable.Map[A, A]()
-			val pq = mutable.PriorityQueue[(A, Int)]()(Ordering.by(-_._2))
+			val pq = mutable.PriorityQueue[(A, Int)]()(using Ordering.by(-_._2))
 			pq.enqueue((start, 0))
 
 			while (pq.nonEmpty) {

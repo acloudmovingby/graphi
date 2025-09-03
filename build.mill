@@ -2,10 +2,16 @@
 //// SNIPPET:BUILD
 package build
 
-import mill.*, scalalib.*, publish.*
+import mill.*, scalalib.*, publish.*, scalajslib.*
 
-object graphi extends ScalaModule, SonatypeCentralPublishModule {
+object graphi extends ScalaModule, ScalaJSModule, SonatypeCentralPublishModule {
 	def scalaVersion = "3.7.1"
+	def scalaJSVersion = "1.19.0"
+
+	def scalacOptions = super.scalacOptions() ++ Seq(
+		"-rewrite",
+		"-source", "3.7-migration"
+	)
 
 	def publishVersion = "0.0.1"
 
@@ -16,6 +22,10 @@ object graphi extends ScalaModule, SonatypeCentralPublishModule {
 		licenses = Seq(License.MIT),
 		versionControl = VersionControl.github("acloudmovingby", "graphi"),
 		developers = Seq(Developer("acloudmovingby", "Chris Oates", "https://github.com/acloudmovingby"))
+	)
+
+	def mvnDeps = Seq(
+		mvn"org.scala-js::scalajs-dom::2.8.0"
 	)
 
 	object test extends ScalaTests {
