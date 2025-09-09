@@ -151,5 +151,60 @@ object MapBasedSimpleTests extends TestSuite {
 				case _: Throwable => assert(false) // unexpected
 			}
 		}
+		
+		test("clone") {
+			// create a graph, clone it, and ensure the clone is identical but independent
+			var g1 = new MapBasedSimpleGraphImmutable[String]()
+			for (node <- Seq("A", "B", "C")) {
+				g1 = g1.addNode(node)
+			}
+			g1 = g1.addEdge("A", "B")
+			g1 = g1.addEdge("B", "C")
+			// clone
+			val g2 = g1.clone(s => s) // identity function for cloning
+			// ensure identical
+			assert(g1.nodeCount == g2.nodeCount)
+			assert(g1.edgeCount == g2.edgeCount)
+			for (node <- Seq("A", "B", "C")) {
+				assert(g1.getNeighbors(node) == g2.getNeighbors(node))
+			}
+			// modify original and ensure clone is unaffected
+			g1 = g1.addNode("D")
+			g1 = g1.addEdge("C", "D")
+			assert(g1.nodeCount == 4)
+			assert(g1.edgeCount == 3)
+			assert(g2.nodeCount == 3)
+			assert(g2.edgeCount == 2)
+			assert(!g2.hasEdge("C", "D"))
+		}
+		
+		test("cloneWithMutableData") {
+			// create a graph with mutable data (e.g., ListBuffer), clone it, and ensure the clone is independent
+			import scala.collection.mutable.ListBuffer
+			var g1 = new MapBasedSimpleGraphImmutable[ListBuffer[Int]]()
+			val nodeA = ListBuffer(1)
+			val nodeB = ListBuffer(2)
+			val nodeC = ListBuffer(3)
+			g1 = g1.addNode(nodeA)
+			g1 = g1.addNode(nodeB)
+			g1 = g1.addNode(nodeC)
+			g1 = g1.addEdge(nodeA, nodeB)
+			g1 = g1.addEdge(nodeB, nodeC)
+			// clone
+			val g2 = g1.clone(lb => lb.clone()) // deep clone of ListBuffer
+			// modify original graph's node data
+			nodeA += 10
+			nodeB += 20
+			// ensure original graph's node data is modified
+			val originalNodeA = g1.adjMap.keys.find(_.contains(1)).get
+			val originalNodeB = g1.adjMap.keys.find(_.contains(2)).get
+			assert(originalNodeA == ListBuffer(1, 10))
+			assert(originalNodeB == ListBuffer(2, 20))
+			// ensure clone's node data is unaffected
+			val clonedNodeA = g2.adjMap.keys.find(_.contains(1)).get
+			val clonedNodeB = g2.adjMap.keys.find(_.contains(2)).get
+			assert(clonedNodeA == ListBuffer(1))
+			assert(clonedNodeB == ListBuffer(2))
+		}
 	}
 }

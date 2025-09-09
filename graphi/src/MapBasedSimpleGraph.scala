@@ -1,5 +1,13 @@
 package graphi
-class MapBasedSimpleGraphImmutable[A](private val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) {
+
+/**
+ * A simple immutable undirected graph implementation using a map-based adjacency list.
+ * Nodes are of type A. Edges are unweighted and undirected.
+ * A must be a type that supports equality and hashing (e.g., Int, String, case class).
+ * @param adjMap
+ * @tparam A
+ */
+class MapBasedSimpleGraphImmutable[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) {
 	def nodeCount: Int = adjMap.size
 	def edgeCount: Int = adjMap.values.map(_.size).sum / 2
 
@@ -64,5 +72,15 @@ class MapBasedSimpleGraphImmutable[A](private val adjMap: Map[A, Set[A]] = Map.e
 			}
 			None // no path found
 		}
+	}
+
+	def clone(nodeCloneFunction: A => A): MapBasedSimpleGraphImmutable[A] = {
+		// create a mapping from old nodes to new nodes
+		val oldToNew = adjMap.keys.map(n => n -> nodeCloneFunction(n)).toMap
+		// create new adjacency map with cloned nodes
+		val newAdjMap = adjMap.map { case (node, neighbors) =>
+			oldToNew(node) -> neighbors.map(oldToNew)
+		}
+		new MapBasedSimpleGraphImmutable[A](newAdjMap)
 	}
 }
