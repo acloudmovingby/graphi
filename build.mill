@@ -28,8 +28,8 @@ object graphi extends ScalaModule, ScalaJSModule, SonatypeCentralPublishModule {
 		mvn"org.scala-js::scalajs-dom::2.8.0"
 	)
 
-	object test extends ScalaTests {
-		def mvnDeps = Seq(mvn"com.lihaoyi::utest:0.9.1")
+	object test extends ScalaJSTests {
+		def mvnDeps = Seq(mvn"com.lihaoyi::utest::0.9.1")
 		def testFramework = "utest.runner.Framework"
 	}
 }
