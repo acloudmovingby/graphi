@@ -1,22 +1,22 @@
 package graphi
 import utest.*
-import graphi.MapBasedSimpleGraphImmutable
+import graphi.SimpleMapGraph
 object MapBasedSimpleTests extends TestSuite {
 	def tests = Tests {
 		test("EmptyGraph") {
-			val g = new MapBasedSimpleGraphImmutable[String]()
+			val g = new SimpleMapGraph[String]()
 			assert(g.nodeCount == 0)
 			assert(g.edgeCount == 0)
 		}
 		test("OneNodeGraph") {
-			var g = new MapBasedSimpleGraphImmutable[String]()
+			var g = new SimpleMapGraph[String]()
 			g = g.addNode("A")
 			assert(g.nodeCount == 1)
 			assert(g.edgeCount == 0)
 		}
 		test("TwoNodeGraph") {
 			// add two nodes and add an edge between them
-			var g = new MapBasedSimpleGraphImmutable[String]()
+			var g = new SimpleMapGraph[String]()
 			g = g.addNode("A")
 			g = g.addNode("B")
 			g = g.addEdge("A", "B")
@@ -28,7 +28,7 @@ object MapBasedSimpleTests extends TestSuite {
 		}
 		test("AddRedundantNodes") {
 			// add two nodes with label "A" and ensure node count is still 1
-			var g = new MapBasedSimpleGraphImmutable[String]()
+			var g = new SimpleMapGraph[String]()
 			g = g.addNode("A")
 			g = g.addNode("A")
 			assert(g.nodeCount == 1)
@@ -37,7 +37,7 @@ object MapBasedSimpleTests extends TestSuite {
 		}
 		test("AddRedundantEdges") {
 			// add two nodes and add the same edge twice, ensure edge count is still 1
-			var g = new MapBasedSimpleGraphImmutable[String]()
+			var g = new SimpleMapGraph[String]()
 			g = g.addNode("A")
 			g = g.addNode("B")
 			g = g.addEdge("A", "B")
@@ -49,7 +49,7 @@ object MapBasedSimpleTests extends TestSuite {
 		}
 		test("AddEdgeNonExistentNode") {
 			// add an edge where one node doesn't exist, should throw NoSuchElementException
-			var g = new MapBasedSimpleGraphImmutable[String]()
+			var g = new SimpleMapGraph[String]()
 			g = g.addNode("A")
 			try {
 				g = g.addEdge("A", "B")
@@ -70,7 +70,7 @@ object MapBasedSimpleTests extends TestSuite {
 		}
 		test("getNeighbors") {
 			// add three nodes and two edges, then check neighbors
-			var g = new MapBasedSimpleGraphImmutable[String]()
+			var g = new SimpleMapGraph[String]()
 			g = g.addNode("A")
 			g = g.addNode("B")
 			g = g.addNode("C")
@@ -98,7 +98,7 @@ object MapBasedSimpleTests extends TestSuite {
 		test("djikstraTrivalGraphs") {
 			// test djikstra on trivial graphs: empty graph, single node graph, two node graph with edge
 			// empty graph
-			var g = new MapBasedSimpleGraphImmutable[String]()
+			var g = new SimpleMapGraph[String]()
 			try {
 				g.djikstra("A", "A")
 				assert(false) // should not reach here
@@ -125,7 +125,7 @@ object MapBasedSimpleTests extends TestSuite {
 			// A -- B -- D
 			// |  / |    |
 			// C -- E -- F
-			var g = new MapBasedSimpleGraphImmutable[String]()
+			var g = new SimpleMapGraph[String]()
 			for (node <- Seq("A", "B", "C", "D", "E", "F")) {
 				g = g.addNode(node)
 			}
@@ -154,7 +154,7 @@ object MapBasedSimpleTests extends TestSuite {
 		
 		test("clone") {
 			// create a graph, clone it, and ensure the clone is identical but independent
-			var g1 = new MapBasedSimpleGraphImmutable[String]()
+			var g1 = new SimpleMapGraph[String]()
 			for (node <- Seq("A", "B", "C")) {
 				g1 = g1.addNode(node)
 			}
@@ -181,7 +181,7 @@ object MapBasedSimpleTests extends TestSuite {
 		test("cloneWithMutableData") {
 			// create a graph with mutable data (e.g., ListBuffer), clone it, and ensure the clone is independent
 			import scala.collection.mutable.ListBuffer
-			var g1 = new MapBasedSimpleGraphImmutable[ListBuffer[Int]]()
+			var g1 = new SimpleMapGraph[ListBuffer[Int]]()
 			val nodeA = ListBuffer(1)
 			val nodeB = ListBuffer(2)
 			val nodeC = ListBuffer(3)

@@ -1,34 +1,33 @@
 package graphi
 
 /**
- * A simple immutable undirected graph implementation using a map-based adjacency list.
- * Nodes are of type A. Edges are unweighted and undirected.
+ * A directed immutable graph implementation using a map-based adjacency list, the directed equivalent of SimpleMapGraph.
+ * Nodes are of type A. Edges are unweighted and directed.
  * A must be a type that supports equality and hashing (e.g., Int, String, case class).
  * @param adjMap
  * @tparam A
  */
-class MapBasedSimpleGraphImmutable[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) {
+class DirectedMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) {
 	def nodeCount: Int = adjMap.size
-	def edgeCount: Int = adjMap.values.map(_.size).sum / 2
+	def edgeCount: Int = adjMap.values.map(_.size).sum
 
 	/** Returns a graph with the node added, unless it already exists in which it returns `this` */
-	def addNode(node: A): MapBasedSimpleGraphImmutable[A] = {
+	def addNode(node: A): DirectedMapGraph[A] = {
 		if (adjMap.contains(node)) this
-		else new MapBasedSimpleGraphImmutable[A](adjMap + (node -> Set()))
+		else new DirectedMapGraph[A](adjMap + (node -> Set()))
 	}
 	/**
 	 * Returns a graph with the edge added. If the edge already exists, returns `this`.
 	  * Throws NoSuchElementException if either node doesn't exist.
 	  */
-	def addEdge(from: A, to: A): MapBasedSimpleGraphImmutable[A] = {
+	def addEdge(from: A, to: A): DirectedMapGraph[A] = {
 		if (!adjMap.contains(from)) throw new NoSuchElementException(s"The node $from doesn't exist")
 		else if (!adjMap.contains(to)) throw new NoSuchElementException(s"The node $to doesn't exist")
 		else if (adjMap(from).contains(to)) this // edge already exists
 		else {
 			// add both edges since this is an undirected graph
 			val fromTo = from -> (adjMap(from) + to)
-			val toFrom = to -> (adjMap(to) + from)
-			new MapBasedSimpleGraphImmutable[A](adjMap ++ Seq(fromTo, toFrom))
+			new DirectedMapGraph[A](adjMap + fromTo)
 		}
 	}
 
@@ -74,13 +73,13 @@ class MapBasedSimpleGraphImmutable[A](val adjMap: Map[A, Set[A]] = Map.empty[A, 
 		}
 	}
 
-	def clone(nodeCloneFunction: A => A): MapBasedSimpleGraphImmutable[A] = {
+	def clone(nodeCloneFunction: A => A): DirectedMapGraph[A] = {
 		// create a mapping from old nodes to new nodes
 		val oldToNew = adjMap.keys.map(n => n -> nodeCloneFunction(n)).toMap
 		// create new adjacency map with cloned nodes
 		val newAdjMap = adjMap.map { case (node, neighbors) =>
 			oldToNew(node) -> neighbors.map(oldToNew)
 		}
-		new MapBasedSimpleGraphImmutable[A](newAdjMap)
+		new DirectedMapGraph[A](newAdjMap)
 	}
 }
