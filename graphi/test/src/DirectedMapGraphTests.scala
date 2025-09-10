@@ -1,34 +1,34 @@
-package graphi
+import graphi.DirectedMapGraph
 import utest.*
-import graphi.SimpleMapGraph
-object MapBasedSimpleTests extends TestSuite {
+
+object DirectedMapGraphTests extends TestSuite {
 	def tests = Tests {
 		test("EmptyGraph") {
-			val g = new SimpleMapGraph[String]()
+			val g = new DirectedMapGraph[String]()
 			assert(g.nodeCount == 0)
 			assert(g.edgeCount == 0)
 		}
 		test("OneNodeGraph") {
-			var g = new SimpleMapGraph[String]()
+			var g = new DirectedMapGraph[String]()
 			g = g.addNode("A")
 			assert(g.nodeCount == 1)
 			assert(g.edgeCount == 0)
 		}
 		test("TwoNodeGraph") {
 			// add two nodes and add an edge between them
-			var g = new SimpleMapGraph[String]()
+			var g = new DirectedMapGraph[String]()
 			g = g.addNode("A")
 			g = g.addNode("B")
 			g = g.addEdge("A", "B")
 			assert(g.nodeCount == 2)
 			assert(g.edgeCount == 1)
 			assert(g.hasEdge("A", "B"))
-			assert(g.hasEdge("B", "A"))
+			assert(!g.hasEdge("B", "A"))
 			assert(!g.hasEdge("A", "C"))
 		}
 		test("AddRedundantNodes") {
 			// add two nodes with label "A" and ensure node count is still 1
-			var g = new SimpleMapGraph[String]()
+			var g = new DirectedMapGraph[String]()
 			g = g.addNode("A")
 			g = g.addNode("A")
 			assert(g.nodeCount == 1)
@@ -37,7 +37,7 @@ object MapBasedSimpleTests extends TestSuite {
 		}
 		test("AddRedundantEdges") {
 			// add two nodes and add the same edge twice, ensure edge count is still 1
-			var g = new SimpleMapGraph[String]()
+			var g = new DirectedMapGraph[String]()
 			g = g.addNode("A")
 			g = g.addNode("B")
 			g = g.addEdge("A", "B")
@@ -45,11 +45,11 @@ object MapBasedSimpleTests extends TestSuite {
 			assert(g.nodeCount == 2)
 			assert(g.edgeCount == 1)
 			assert(g.hasEdge("A", "B"))
-			assert(g.hasEdge("B", "A"))
+			assert(!g.hasEdge("B", "A"))
 		}
 		test("AddEdgeNonExistentNode") {
 			// add an edge where one node doesn't exist, should throw NoSuchElementException
-			var g = new SimpleMapGraph[String]()
+			var g = new DirectedMapGraph[String]()
 			g = g.addNode("A")
 			try {
 				g = g.addEdge("A", "B")
@@ -70,7 +70,7 @@ object MapBasedSimpleTests extends TestSuite {
 		}
 		test("getNeighbors") {
 			// add three nodes and two edges, then check neighbors
-			var g = new SimpleMapGraph[String]()
+			var g = new DirectedMapGraph[String]()
 			g = g.addNode("A")
 			g = g.addNode("B")
 			g = g.addNode("C")
@@ -85,8 +85,8 @@ object MapBasedSimpleTests extends TestSuite {
 			val neighborsB = g.getNeighbors("B")
 			val neighborsC = g.getNeighbors("C")
 			assert(neighborsA == Set("B", "C"))
-			assert(neighborsB == Set("A"))
-			assert(neighborsC == Set("A"))
+			assert(neighborsB == Set())
+			assert(neighborsC == Set())
 			try {
 				g.getNeighbors("D")
 				assert(false) // should not reach here
@@ -98,7 +98,7 @@ object MapBasedSimpleTests extends TestSuite {
 		test("djikstraTrivalGraphs") {
 			// test djikstra on trivial graphs: empty graph, single node graph, two node graph with edge
 			// empty graph
-			var g = new SimpleMapGraph[String]()
+			var g = new DirectedMapGraph[String]()
 			try {
 				g.djikstra("A", "A")
 				assert(false) // should not reach here
@@ -118,14 +118,18 @@ object MapBasedSimpleTests extends TestSuite {
 			g = g.addEdge("A", "B")
 			val result3 = g.djikstra("A", "B")
 			assert(result3.contains((List("A", "B"), 1)))
+			// directed: no path from B to A
+			val result4 = g.djikstra("B", "A")
+			assert(result4.isEmpty)
 		}
 		test("djikstraLargerGraph") {
 			// create a larger graph and test djikstra
 			// Graph structure:
-			// A -- B -- D
-			// |  / |    |
-			// C -- E -- F
-			var g = new SimpleMapGraph[String]()
+			// A -> B -> D
+			// |   |    |
+			// v   v    v
+			// C   E -> F
+			var g = new DirectedMapGraph[String]()
 			for (node <- Seq("A", "B", "C", "D", "E", "F")) {
 				g = g.addNode(node)
 			}
@@ -133,15 +137,14 @@ object MapBasedSimpleTests extends TestSuite {
 				g = g.addEdge(from, to)
 			}
 			// test various paths
-			// multiple valid shortest paths may exist, so check for all possibilities
 			val result1 = g.djikstra("A", "F")
 			assert(result1.contains((List("A", "B", "E", "F"), 3)) || result1.contains((List("A", "C", "E", "F"), 3)))
 			val result2 = g.djikstra("C", "D")
-			assert(result2.contains((List("C", "B", "D"), 2)))
+			assert(result2.isEmpty) // no path from C to D in directed graph
 			val result3 = g.djikstra("A", "D")
 			assert(result3.contains((List("A", "B", "D"), 2)))
 			val result4 = g.djikstra("E", "A")
-			assert(result4.contains((List("E", "B", "A"), 2)) || result4.contains((List("E", "C", "A"), 2)))
+			assert(result4.isEmpty) // no path from E to A in directed graph
 			// test path to non-existent node
 			try {
 				g.djikstra("A", "G")
@@ -151,17 +154,16 @@ object MapBasedSimpleTests extends TestSuite {
 				case _: Throwable => assert(false) // unexpected
 			}
 		}
-		
 		test("clone") {
 			// create a graph, clone it, and ensure the clone is identical but independent
-			var g1 = new SimpleMapGraph[String]()
+			var g1 = new DirectedMapGraph[String]()
 			for (node <- Seq("A", "B", "C")) {
 				g1 = g1.addNode(node)
 			}
 			g1 = g1.addEdge("A", "B")
 			g1 = g1.addEdge("B", "C")
 			// clone
-			val g2 = g1.clone(s => s) // identity function for cloning
+			val g2 = g1.clone(s => s)
 			// ensure identical
 			assert(g1.nodeCount == g2.nodeCount)
 			assert(g1.edgeCount == g2.edgeCount)
@@ -177,11 +179,10 @@ object MapBasedSimpleTests extends TestSuite {
 			assert(g2.edgeCount == 2)
 			assert(!g2.hasEdge("C", "D"))
 		}
-		
 		test("cloneWithMutableData") {
 			// create a graph with mutable data (e.g., ListBuffer), clone it, and ensure the clone is independent
 			import scala.collection.mutable.ListBuffer
-			var g1 = new SimpleMapGraph[ListBuffer[Int]]()
+			var g1 = new DirectedMapGraph[ListBuffer[Int]]()
 			val nodeA = ListBuffer(1)
 			val nodeB = ListBuffer(2)
 			val nodeC = ListBuffer(3)
@@ -191,7 +192,7 @@ object MapBasedSimpleTests extends TestSuite {
 			g1 = g1.addEdge(nodeA, nodeB)
 			g1 = g1.addEdge(nodeB, nodeC)
 			// clone
-			val g2 = g1.clone(lb => lb.clone()) // deep clone of ListBuffer
+			val g2 = g1.clone(lb => lb.clone())
 			// modify original graph's node data
 			nodeA += 10
 			nodeB += 20
