@@ -21,19 +21,16 @@ class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) exten
 		val toFrom = to -> (adjMap(to) + from)
 		adjMap ++ Seq(fromTo, toFrom)
 	}
-
-	def toDot: String = {
+	
+	def getEdges(): Set[(A, A)] = {
 		val edges = scala.collection.mutable.Set[(A, A)]()
-		val orphanNodes = scala.collection.mutable.Set.from(adjMap.keys)
 		for {
 			(from, neighbors) <- adjMap
 			to <- neighbors
-			_ = orphanNodes.remove(from)
-			_ = orphanNodes.remove(to)
 			if from.hashCode() <= to.hashCode() // avoid duplicates in undirected graph
 		} edges.add((from, to))
-		val edgeStrings = edges.map { case (f, t) => s"""  "${f.toString}" -- "${t.toString}";""" }.mkString("\n")
-		val orphanNodeString = orphanNodes.map(node => s""""${node.toString}";""").mkString("\n")
-		s"graph G {\n$edgeStrings\n${if (orphanNodes.nonEmpty) orphanNodeString + "\n" else ""}}"
+		edges.toSet
 	}
+
+	def toDot: String = toDotInternal(directed = false)
 }

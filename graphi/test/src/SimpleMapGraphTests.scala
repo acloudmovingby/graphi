@@ -1,6 +1,10 @@
-package graphi
+package graphi.test
+
 import utest.*
+
 import graphi.SimpleMapGraph
+import graphi.test.TestCommonCode.testIsolates
+
 object SimpleMapGraphTests extends TestSuite {
 	def tests = Tests {
 		test("EmptyGraph") {
@@ -228,6 +232,10 @@ object SimpleMapGraphTests extends TestSuite {
 			)
 			val dotLines = dot.split("\n").map(_.trim).toSet
 			assert(dotLines == expectedLines)
+		}
+
+		test("isolates") {
+			testIsolates(new SimpleMapGraph[String]())
 		}
 	}
 }

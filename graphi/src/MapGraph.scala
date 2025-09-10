@@ -17,6 +17,8 @@ trait MapGraph[B, A] {
 	protected def constructNewThis(adjMap: Map[A, Set[A]]): B
 
 	def nodeCount: Int = adjMap.size
+	def getEdges(): Set[(A, A)]
+	def edgeCount: Int
 
 	/** Returns a graph with the node added, unless it already exists in which it returns `this` */
 	def addNode(node: A): B = {
@@ -87,5 +89,25 @@ trait MapGraph[B, A] {
 			oldToNew(node) -> neighbors.map(oldToNew)
 		}
 		constructNewThis(newAdjMap)
+	}
+
+	/** Set of nodes that have no edges (in or out)  */
+	def isolates: Set[A] = {
+		val allNodes = adjMap.keys.toSet
+		val hasOutEdge = adjMap.filter { case (_, neighbors) => neighbors.nonEmpty }.keySet
+		val hasInEdge = adjMap.values.toSet.flatten
+		allNodes -- hasOutEdge -- hasInEdge
+	}
+
+	protected def toDotInternal(directed: Boolean): String = {
+		val edgeSymbol = if (directed) "->" else "--"
+		val graphType = if (directed) "digraph" else "graph"
+		val edges = getEdges()
+		val _isolates = this.isolates
+		val edgeStrings = edges.map { case (f, t) => s"""  "${f.toString}" $edgeSymbol "${t.toString}";""" }
+		val isolateStrings = _isolates.map(node => s"""  "${node.toString}";""")
+		val allStrings = edgeStrings ++ isolateStrings
+		val concatenated = if (allStrings.nonEmpty) allStrings.mkString("\n", "\n", "\n") else ""
+		s"$graphType G {$concatenated}"
 	}
 }
