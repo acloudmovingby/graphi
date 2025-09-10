@@ -10,7 +10,10 @@ object graphi extends ScalaModule, ScalaJSModule, SonatypeCentralPublishModule {
 
 	def scalacOptions = super.scalacOptions() ++ Seq(
 		"-rewrite",
-		"-source", "3.7-migration"
+		"-source", "3.7-migration",
+		"-deprecation",
+		"-Wvalue-discard",
+		"-Xfatal-warnings",
 	)
 
 	def publishVersion = "0.0.1"

@@ -12,12 +12,33 @@ trait MapGraph[B, A] {
 
 	val adjMap: Map[A, Set[A]]
 
+    // protected methods to be implemented by subclasses
 	protected def returnThis: B
-
 	protected def constructNewThis(adjMap: Map[A, Set[A]]): B
+	protected def addEdgeInternal(from: A, to: A): Map[A, Set[A]]
 
 	def nodeCount: Int = adjMap.size
+	def edgeCount: Int
 
+	// helper methods for subclasses
+	protected def toDotInternal(directed: Boolean): String = {
+		val edgeSymbol = if (directed) "->" else "--"
+		val graphType = if (directed) "digraph" else "graph"
+		val s = Seq(1, 2)
+		val edges = getEdges
+		val _isolates = this.isolates
+		val edgeStrings = edges.map { case (f, t) => s"""  "${f.toString}" $edgeSymbol "${t.toString}";""" }
+		val isolateStrings = _isolates.map(node => s"""  "${node.toString}";""")
+		val allStrings = edgeStrings ++ isolateStrings
+		val concatenated = if (allStrings.nonEmpty) allStrings.mkString("\n", "\n", "\n") else ""
+		s"$graphType G {$concatenated}"
+	}
+
+	// unimplemented public methods
+	def toDot: String
+	def getEdges: Set[(A, A)]
+
+	// public methods with implementations
 	/** Returns a graph with the node added, unless it already exists in which it returns `this` */
 	def addNode(node: A): B = {
 		if (adjMap.contains(node)) returnThis
@@ -35,7 +56,6 @@ trait MapGraph[B, A] {
 		else constructNewThis(addEdgeInternal(from, to))
 	}
 
-	protected def addEdgeInternal(from: A, to: A): Map[A, Set[A]]
 
 	/** Returns true if there is an edge between the two nodes. Throws NoSuchElementException if either node doesn't exist. */
 	def hasEdge(from: A, to: A): Boolean = adjMap.get(from).exists(_.contains(to))
@@ -87,5 +107,13 @@ trait MapGraph[B, A] {
 			oldToNew(node) -> neighbors.map(oldToNew)
 		}
 		constructNewThis(newAdjMap)
+	}
+
+	/** Set of nodes that have no edges (in or out)  */
+	def isolates: Set[A] = {
+		val allNodes = adjMap.keys.toSet
+		val hasOutEdge = adjMap.filter { case (_, neighbors) => neighbors.nonEmpty }.keySet
+		val hasInEdge = adjMap.values.toSet.flatten
+		allNodes -- hasOutEdge -- hasInEdge
 	}
 }

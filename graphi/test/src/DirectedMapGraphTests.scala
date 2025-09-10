@@ -1,5 +1,9 @@
-import graphi.DirectedMapGraph
+package graphi.test
+
 import utest.*
+
+import graphi.DirectedMapGraph
+import graphi.test.TestCommonCode.testIsolates
 
 object DirectedMapGraphTests extends TestSuite {
 	def tests = Tests {
@@ -210,10 +214,34 @@ object DirectedMapGraphTests extends TestSuite {
 			assert(clonedNodeA == ListBuffer(1))
 			assert(clonedNodeB == ListBuffer(2))
 		}
+
+		test("toDotTrivial") {
+			// test DOT output for trivial graphs
+			// empty graph
+			var g = new DirectedMapGraph[String]()
+			val dot1 = g.toDot
+			assert(dot1.trim == "digraph G {}")
+			// single node graph
+			g = g.addNode("A")
+			val dot2 = g.toDot
+			assert(dot2.trim == "digraph G {\n  \"A\";\n}")
+			// two node graph with one edge
+			g = g.addNode("B")
+			g = g.addEdge("A", "B")
+			val dot3 = g.toDot
+			val expectedLines = Set(
+				"digraph G {",
+				""""A" -> "B";""",
+				"}"
+			)
+			val dotLines = dot3.split("\n").map(_.trim).toSet
+			assert(dotLines == expectedLines)
+		}
+
 		test("toDot") {
 			// create a graph and test the DOT output
 			var g = new DirectedMapGraph[String]()
-			for (node <- Seq("A", "B", "C")) {
+			for (node <- Seq("A", "B", "C", "D")) {
 				g = g.addNode(node)
 			}
 			g = g.addEdge("A", "B")
@@ -225,10 +253,15 @@ object DirectedMapGraphTests extends TestSuite {
 				""""A" -> "B";""",
 				""""A" -> "C";""",
 				""""B" -> "C";""",
+				""""D";""",
 				"}"
 			)
 			val dotLines = dot.split("\n").map(_.trim).toSet
 			assert(dotLines == expectedLines)
+		}
+
+		test("isolates") {
+			testIsolates(new DirectedMapGraph[String]())
 		}
 	}
 }

@@ -24,14 +24,15 @@ class DirectedMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) ext
 		adjMap + fromTo
 	}
 
-	def toDot: String = {
+	def getEdges: Set[(A, A)] = {
 		val edges = scala.collection.mutable.Set[(A, A)]()
 		for {
 			(from, neighbors) <- adjMap
 			to <- neighbors
 		} edges.add((from, to))
-		val edgeStrings = edges.map { case (f, t) => s"""  "${f.toString}" -> "${t.toString}";""" }.mkString("\n")
-		s"digraph G {\n$edgeStrings\n}"
+		edges.toSet
 	}
+
+	def toDot: String = toDotInternal(directed = true)
 }
 

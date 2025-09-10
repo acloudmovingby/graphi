@@ -22,14 +22,15 @@ class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) exten
 		adjMap ++ Seq(fromTo, toFrom)
 	}
 
-	def toDot: String = {
+	def getEdges: Set[(A, A)] = {
 		val edges = scala.collection.mutable.Set[(A, A)]()
 		for {
 			(from, neighbors) <- adjMap
 			to <- neighbors
 			if from.hashCode() <= to.hashCode() // avoid duplicates in undirected graph
 		} edges.add((from, to))
-		val edgeStrings = edges.map { case (f, t) => s"""  "${f.toString}" -- "${t.toString}";""" }.mkString("\n")
-		s"graph G {\n$edgeStrings\n}"
+		edges.toSet
 	}
+
+	def toDot: String = toDotInternal(directed = false)
 }
