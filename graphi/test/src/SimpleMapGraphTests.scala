@@ -206,5 +206,23 @@ object SimpleMapGraphTests extends TestSuite {
 			assert(clonedNodeA == ListBuffer(1))
 			assert(clonedNodeB == ListBuffer(2))
 		}
+		test("toDot") {
+			// create a simple graph and test the DOT output
+			var g = new SimpleMapGraph[String]()
+			for (node <- Seq("A", "B", "C")) {
+				g = g.addNode(node)
+			}
+			g = g.addEdge("A", "B")
+			g = g.addEdge("B", "C")
+			val dot = g.toDot
+			val expectedLines = Set(
+				"graph G {",
+				""""A" -- "B";""",
+				""""B" -- "C";""",
+				"}"
+			)
+			val dotLines = dot.split("\n").map(_.trim).toSet
+			assert(dotLines == expectedLines)
+		}
 	}
 }

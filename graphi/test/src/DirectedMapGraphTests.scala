@@ -207,5 +207,25 @@ object DirectedMapGraphTests extends TestSuite {
 			assert(clonedNodeA == ListBuffer(1))
 			assert(clonedNodeB == ListBuffer(2))
 		}
+		test("toDot") {
+			// create a graph and test the DOT output
+			var g = new DirectedMapGraph[String]()
+			for (node <- Seq("A", "B", "C")) {
+				g = g.addNode(node)
+			}
+			g = g.addEdge("A", "B")
+			g = g.addEdge("B", "C")
+			g = g.addEdge("A", "C")
+			val dot = g.toDot
+			val expectedLines = Set(
+				"digraph G {",
+				""""A" -> "B";""",
+				""""A" -> "C";""",
+				""""B" -> "C";""",
+				"}"
+			)
+			val dotLines = dot.split("\n").map(_.trim).toSet
+			assert(dotLines == expectedLines)
+		}
 	}
 }
