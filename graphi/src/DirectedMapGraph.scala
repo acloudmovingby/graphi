@@ -1,9 +1,7 @@
 package graphi
 
 /**
- * A directed immutable graph implementation using a map-based adjacency list, the directed equivalent of SimpleMapGraph.
- * Nodes are of type A. Edges are unweighted and directed.
- * A must be a type that supports equality and hashing (e.g., Int, String, case class).
+ * A directed (unweighted) implementation of MapGraph. Immutable.
  *
  * @param adjMap The adjacency map representing the graph
  * @tparam A The type of the nodes in the graph

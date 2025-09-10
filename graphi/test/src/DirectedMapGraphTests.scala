@@ -25,6 +25,9 @@ object DirectedMapGraphTests extends TestSuite {
 			assert(g.hasEdge("A", "B"))
 			assert(!g.hasEdge("B", "A"))
 			assert(!g.hasEdge("A", "C"))
+			g = g.addEdge("B", "A")
+			assert(g.edgeCount == 2)
+			assert(g.hasEdge("B", "A"))
 		}
 		test("AddRedundantNodes") {
 			// add two nodes with label "A" and ensure node count is still 1

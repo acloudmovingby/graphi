@@ -1,12 +1,10 @@
 package graphi
 
 /**
- * A simple immutable undirected graph implementation using a map-based adjacency list.
- * Nodes are of type A. Edges are unweighted and undirected.
- * A must be a type that supports equality and hashing (e.g., Int, String, case class).
+ * A simple (undirected, unweighted) implementation of MapGraph. Immutable.
  *
  * @param adjMap
- * @tparam A
+ * @tparam A The type of the nodes in the graph
  */
 class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) extends MapGraph[SimpleMapGraph[A], A] {
 	// boilerplate to help inheritance work correctly, probably should be using typeclasses somehow but couldn't figure it out

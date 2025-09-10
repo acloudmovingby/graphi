@@ -25,6 +25,10 @@ object SimpleMapGraphTests extends TestSuite {
 			assert(g.hasEdge("A", "B"))
 			assert(g.hasEdge("B", "A"))
 			assert(!g.hasEdge("A", "C"))
+			// adding the reverse edge again should not change edge count (since undirected, so implied bidirectional)
+			g = g.addEdge("B", "A")
+			assert(g.edgeCount == 1)
+			assert(g.hasEdge("B", "A"))
 		}
 		test("AddRedundantNodes") {
 			// add two nodes with label "A" and ensure node count is still 1
