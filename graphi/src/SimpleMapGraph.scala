@@ -24,12 +24,16 @@ class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) exten
 
 	def toDot: String = {
 		val edges = scala.collection.mutable.Set[(A, A)]()
+		val orphanNodes = scala.collection.mutable.Set.from(adjMap.keys)
 		for {
 			(from, neighbors) <- adjMap
 			to <- neighbors
+			_ = orphanNodes.remove(from)
+			_ = orphanNodes.remove(to)
 			if from.hashCode() <= to.hashCode() // avoid duplicates in undirected graph
 		} edges.add((from, to))
 		val edgeStrings = edges.map { case (f, t) => s"""  "${f.toString}" -- "${t.toString}";""" }.mkString("\n")
-		s"graph G {\n$edgeStrings\n}"
+		val orphanNodeString = orphanNodes.map(node => s""""${node.toString}";""").mkString("\n")
+		s"graph G {\n$edgeStrings\n${if (orphanNodes.nonEmpty) orphanNodeString + "\n" else ""}}"
 	}
 }

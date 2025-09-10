@@ -213,7 +213,7 @@ object SimpleMapGraphTests extends TestSuite {
 		test("toDot") {
 			// create a simple graph and test the DOT output
 			var g = new SimpleMapGraph[String]()
-			for (node <- Seq("A", "B", "C")) {
+			for (node <- Seq("A", "B", "C", "D")) {
 				g = g.addNode(node)
 			}
 			g = g.addEdge("A", "B")
@@ -223,6 +223,7 @@ object SimpleMapGraphTests extends TestSuite {
 				"graph G {",
 				""""A" -- "B";""",
 				""""B" -- "C";""",
+				""""D";""",
 				"}"
 			)
 			val dotLines = dot.split("\n").map(_.trim).toSet
