@@ -21,8 +21,8 @@ class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) exten
 		val toFrom = to -> (adjMap(to) + from)
 		adjMap ++ Seq(fromTo, toFrom)
 	}
-	
-	def getEdges(): Set[(A, A)] = {
+
+	def getEdges: Set[(A, A)] = {
 		val edges = scala.collection.mutable.Set[(A, A)]()
 		for {
 			(from, neighbors) <- adjMap
