@@ -8,21 +8,20 @@ package graphi
  */
 class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) extends MapGraph[SimpleMapGraph[A], A] {
 	// boilerplate to help inheritance work correctly, probably should be using typeclasses somehow but couldn't figure it out
-	protected def returnThis: SimpleMapGraph[A] = this
-
-	protected def constructNewThis(adjMap: Map[A, Set[A]]): SimpleMapGraph[A] = new SimpleMapGraph[A](adjMap)
+	override protected def returnThis: SimpleMapGraph[A] = this
+	override protected def constructNewThis(adjMap: Map[A, Set[A]]): SimpleMapGraph[A] = new SimpleMapGraph[A](adjMap)
 
 	// For undirected graphs, we count each bidirectional edge only once (hence dividing by 2)
-	def edgeCount: Int = adjMap.values.map(_.size).sum / 2
+	override def edgeCount: Int = adjMap.values.map(_.size).sum / 2
 
-	def addEdgeInternal(from: A, to: A): Map[A, Set[A]] = {
+	override protected def addEdgeInternal(from: A, to: A): Map[A, Set[A]] = {
 		// add both edges since this is an undirected graph
 		val fromTo = from -> (adjMap(from) + to)
 		val toFrom = to -> (adjMap(to) + from)
 		adjMap ++ Seq(fromTo, toFrom)
 	}
 
-	def getEdges: Set[(A, A)] = {
+	override def getEdges: Set[(A, A)] = {
 		val edges = scala.collection.mutable.Set[(A, A)]()
 		for {
 			(from, neighbors) <- adjMap
@@ -33,4 +32,7 @@ class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) exten
 	}
 
 	def toDot: String = toDotInternal(directed = false)
+
+	// Unique to SimpleMapGraph
+	override def getNeighbors(node: A): Set[A] = adjMap(node)
 }

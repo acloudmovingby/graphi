@@ -56,12 +56,11 @@ trait MapGraph[B, A] {
 		else constructNewThis(addEdgeInternal(from, to))
 	}
 
-
 	/** Returns true if there is an edge between the two nodes. Throws NoSuchElementException if either node doesn't exist. */
 	def hasEdge(from: A, to: A): Boolean = adjMap.get(from).exists(_.contains(to))
 
 	/** Returns the set of neighbors of the given node. Throws NoSuchElementException if the node doesn't exist. */
-	def getNeighbors(node: A): Set[A] = adjMap(node)
+	def getNeighbors(node: A): Set[A]
 
 	def djikstra(start: A, end: A): Option[(List[A], Int)] = {
 		if (!adjMap.contains(start)) throw new NoSuchElementException(s"The node $start doesn't exist")
