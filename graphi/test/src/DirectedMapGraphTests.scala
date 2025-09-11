@@ -75,27 +75,48 @@ object DirectedMapGraphTests extends TestSuite {
 			assert(g.nodeCount == 1)
 			assert(g.edgeCount == 0)
 		}
-		test("getNeighbors") {
-			// add three nodes and two edges, then check neighbors
+		test("getSuccessors") {
+			// create a graph and test getSuccessors
 			var g = new DirectedMapGraph[String]()
-			g = g.addNode("A")
-			g = g.addNode("B")
-			g = g.addNode("C")
-			// check neighbors of unconnected nodes
-			assert(g.getNeighbors("A").isEmpty)
-			assert(g.getNeighbors("B").isEmpty)
-			assert(g.getNeighbors("C").isEmpty)
-			// add edges
+			for (node <- Seq("A", "B", "C")) {
+				g = g.addNode(node)
+			}
 			g = g.addEdge("A", "B")
 			g = g.addEdge("A", "C")
-			val neighborsA = g.getNeighbors("A")
-			val neighborsB = g.getNeighbors("B")
-			val neighborsC = g.getNeighbors("C")
-			assert(neighborsA == Set("B", "C"))
-			assert(neighborsB == Set())
-			assert(neighborsC == Set())
+			g = g.addEdge("B", "C")
+			val succA = g.getSuccessors("A")
+			assert(succA == Set("B", "C"))
+			val succB = g.getSuccessors("B")
+			assert(succB == Set("C"))
+			val succC = g.getSuccessors("C")
+			assert(succC.isEmpty)
+			// test non-existent node
 			try {
-				g.getNeighbors("D")
+				g.getSuccessors("D")
+				assert(false) // should not reach here
+			} catch {
+				case _: NoSuchElementException => assert(true) // expected
+				case _: Throwable => assert(false) // unexpected
+			}
+		}
+		test("getPredecessors") {
+			// create a graph and test getPredecessors
+			var g = new DirectedMapGraph[String]()
+			for (node <- Seq("A", "B", "C")) {
+				g = g.addNode(node)
+			}
+			g = g.addEdge("A", "B")
+			g = g.addEdge("A", "C")
+			g = g.addEdge("B", "C")
+			val predA = g.getPredecessors("A")
+			assert(predA.isEmpty)
+			val predB = g.getPredecessors("B")
+			assert(predB == Set("A"))
+			val predC = g.getPredecessors("C")
+			assert(predC == Set("A", "B"))
+			// test non-existent node
+			try {
+				g.getPredecessors("D")
 				assert(false) // should not reach here
 			} catch {
 				case _: NoSuchElementException => assert(true) // expected
@@ -175,7 +196,7 @@ object DirectedMapGraphTests extends TestSuite {
 			assert(g1.nodeCount == g2.nodeCount)
 			assert(g1.edgeCount == g2.edgeCount)
 			for (node <- Seq("A", "B", "C")) {
-				assert(g1.getNeighbors(node) == g2.getNeighbors(node))
+				assert(g1.getSuccessors(node) == g2.getSuccessors(node))
 			}
 			// modify original and ensure clone is unaffected
 			g1 = g1.addNode("D")
