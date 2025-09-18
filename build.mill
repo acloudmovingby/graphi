@@ -12,6 +12,7 @@ object graphi extends ScalaModule, ScalaJSModule, SonatypeCentralPublishModule {
 		"-rewrite",
 		"-source", "3.7-migration",
 		"-deprecation",
+		"-explain",
 		"-Wvalue-discard",
 		"-Xfatal-warnings",
 	)

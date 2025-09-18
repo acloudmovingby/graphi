@@ -20,7 +20,6 @@ trait MapGraph[B, A] {
 	def nodeCount: Int = adjMap.size
 	def edgeCount: Int
 
-	// helper methods for subclasses
 	protected def toDotInternal(directed: Boolean): String = {
 		val edgeSymbol = if (directed) "->" else "--"
 		val graphType = if (directed) "digraph" else "graph"
@@ -34,11 +33,11 @@ trait MapGraph[B, A] {
 		s"$graphType G {$concatenated}"
 	}
 
-	// unimplemented public methods
 	def toDot: String
 	def getEdges: Set[(A, A)]
 
-	// public methods with implementations
+	def getNodes: Set[A] = adjMap.keys.toSet
+
 	/** Returns a graph with the node added, unless it already exists in which it returns `this` */
 	def addNode(node: A): B = {
 		if (adjMap.contains(node)) returnThis

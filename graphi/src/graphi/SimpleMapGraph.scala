@@ -35,4 +35,6 @@ class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) exten
 
 	// Unique to SimpleMapGraph
 	override def getNeighbors(node: A): Set[A] = adjMap(node)
+
+	def getDegree(node: A): Int = adjMap(node).size
 }

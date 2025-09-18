@@ -54,5 +54,16 @@ class DirectedMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) ext
 		if (!adjMap.contains(node)) throw new NoSuchElementException(s"The node $node doesn't exist")
 		adjMap.filter { case (_, neighbors) => neighbors.contains(node) }.keys.toSet
 	}
+
+	def getOutDegree(node: A): Int = {
+		adjMap.getOrElse(node, throw new NoSuchElementException(s"The node $node doesn't exist")).size
+	}
+
+	// TODO optimize getInDegree to avoid O(E) complexity
+	// Currently O(E) where E = number of edges, since we have to scan the whole adjacency map.
+	def getInDegree(node: A): Int = {
+		if (!adjMap.contains(node)) throw new NoSuchElementException(s"The node $node doesn't exist")
+		adjMap.count { case (_, neighbors) => neighbors.contains(node) }
+	}
 }
 
