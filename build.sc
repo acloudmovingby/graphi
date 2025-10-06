@@ -1,5 +1,4 @@
-//| mill-version: 1.0.3
-//// SNIPPET:BUILD
+//| mill-version: 1.0.6
 package build
 
 import mill.*, scalalib.*, publish.*, scalajslib.*
@@ -19,13 +18,22 @@ object graphi extends ScalaModule, ScalaJSModule, SonatypeCentralPublishModule {
 	def publishVersion = "0.0.1"
 
 	def pomSettings = PomSettings(
-		description = "Hello",
-		organization = "acloudmovingby",
+		description = "A simple, immutable graph library for Scala.",
+		organization = "io.github.acloudmovingby",
 		url = "https://github.com/acloudmovingby/graphi",
 		licenses = Seq(License.MIT),
 		versionControl = VersionControl.github("acloudmovingby", "graphi"),
 		developers = Seq(Developer("acloudmovingby", "Chris Oates", "https://github.com/acloudmovingby"))
 	)
+
+	def sonatypeUri = "https://maven.pkg.github.com/my-org/my-repo"
+
+	def sonatypeSnapshotUri = sonatypeUri
+
+	def sonatypeCreds = for {
+		user <- sys.env.get("GITHUB_USER")
+		token <- sys.env.get("GITHUB_TOKEN")
+	} yield coursier.core.Authentication(user, token)
 
 	def mvnDeps = Seq(
 		mvn"org.scala-js::scalajs-dom::2.8.0"
