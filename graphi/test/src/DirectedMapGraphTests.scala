@@ -284,5 +284,56 @@ object DirectedMapGraphTests extends TestSuite {
 		test("isolates") {
 			testIsolates(new DirectedMapGraph[String]())
 		}
+		test("removeEdge") {
+			// Setup: create a graph with two nodes and an edge
+			var g = new DirectedMapGraph[String]()
+			g = g.addNode("A")
+			g = g.addNode("B")
+			g = g.addEdge("A", "B")
+			assert(g.edgeCount == 1)
+			assert(g.hasEdge("A", "B"))
+
+			// Remove existing edge
+			g = g.removeEdge("A", "B")
+			assert(g.edgeCount == 0)
+			assert(!g.hasEdge("A", "B"))
+
+			// Remove non-existent edge (should be a no-op)
+			g = g.removeEdge("A", "B")
+			assert(g.edgeCount == 0)
+			assert(!g.hasEdge("A", "B"))
+
+			// Remove edge where one node does not exist (should throw)
+			try {
+				g.removeEdge("A", "C")
+				assert(false)
+			} catch {
+				case _: NoSuchElementException => assert(true)
+				case _: Throwable => assert(false)
+			}
+		}
+		test("removeSingleDirectionOfBidirectionalEdge") {
+			// Setup: create a graph with two nodes and bidirectional edges
+			var g = new DirectedMapGraph[String]()
+			g = g.addNode("A")
+			g = g.addNode("B")
+			g = g.addEdge("A", "B")
+			g = g.addEdge("B", "A")
+			assert(g.edgeCount == 2)
+			assert(g.hasEdge("A", "B"))
+			assert(g.hasEdge("B", "A"))
+
+			// Remove only one direction
+			g = g.removeEdge("A", "B")
+			assert(g.edgeCount == 1)
+			assert(!g.hasEdge("A", "B"))
+			assert(g.hasEdge("B", "A"))
+
+			// Remove the other direction
+			g = g.removeEdge("B", "A")
+			assert(g.edgeCount == 0)
+			assert(!g.hasEdge("A", "B"))
+			assert(!g.hasEdge("B", "A"))
+		}
 	}
 }
