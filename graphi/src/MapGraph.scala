@@ -8,7 +8,7 @@ package graphi
  * @tparam B The concrete graph type extending this trait (allows methods to return their own type in builder pattern)
  * @tparam A The type of the nodes in the graph
  */
-trait MapGraph[B, A] {
+trait MapGraph[A, B] {
 
 	val adjMap: Map[A, Set[A]]
 
@@ -37,6 +37,7 @@ trait MapGraph[B, A] {
 	// unimplemented public methods
 	def toDot: String
 	def getEdges: Set[(A, A)]
+	def removeEdge(from: A, to: A): B
 
 	// public methods with implementations
 	/** Returns a graph with the node added, unless it already exists in which it returns `this` */

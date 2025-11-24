@@ -237,5 +237,36 @@ object SimpleMapGraphTests extends TestSuite {
 		test("isolates") {
 			testIsolates(new SimpleMapGraph[String]())
 		}
+		test("removeEdge") {
+			// Setup: create a graph with two nodes and an edge
+			var g = new SimpleMapGraph[String]()
+			g = g.addNode("A")
+			g = g.addNode("B")
+			g = g.addEdge("A", "B")
+			assert(g.edgeCount == 1)
+			assert(g.hasEdge("A", "B"))
+			assert(g.hasEdge("B", "A"))
+
+			// Remove existing edge
+			g = g.removeEdge("A", "B")
+			assert(g.edgeCount == 0)
+			assert(!g.hasEdge("A", "B"))
+			assert(!g.hasEdge("B", "A"))
+
+			// Remove non-existent edge (should be a no-op)
+			g = g.removeEdge("A", "B")
+			assert(g.edgeCount == 0)
+			assert(!g.hasEdge("A", "B"))
+			assert(!g.hasEdge("B", "A"))
+
+			// Remove edge where one node does not exist (should throw)
+			try {
+				g.removeEdge("A", "C")
+				assert(false)
+			} catch {
+				case _: NoSuchElementException => assert(true)
+				case _: Throwable => assert(false)
+			}
+		}
 	}
 }
