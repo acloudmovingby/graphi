@@ -15,7 +15,7 @@ object graphi extends ScalaModule, ScalaJSModule, SonatypeCentralPublishModule {
 		"-Xfatal-warnings",
 	)
 
-	def publishVersion = "0.0.1"
+	def publishVersion = "0.0.2"
 
 	def pomSettings = PomSettings(
 		description = "A simple, immutable graph library for Scala.",
