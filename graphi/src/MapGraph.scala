@@ -116,4 +116,23 @@ trait MapGraph[A, B] {
 		val hasInEdge = adjMap.values.toSet.flatten
 		allNodes -- hasOutEdge -- hasInEdge
 	}
+	
+	/** Get edges, but for each edge return true if it is bidirectional and false if not. Removes redundant edges.
+	 * So, for example, if graph contains edges (A,B) and (B,A), this may return either ((A,B), true) or ((B, A), true) 
+	 * but not both. */
+	def uniqueEdgesWithDirection: Set[((A, A), Boolean)] = {
+		getEdges.foldLeft(Set[((A, A), Boolean)]()) { (acc, edge) =>
+			val (from, to) = edge
+			if (acc.exists { case ((f, t), _) => (f == to && t == from) }) {
+				// already have the reverse edge recorded as bidirectional
+				acc
+			} else if (hasEdge(to, from)) {
+				// add as bidirectional
+				acc + (((from, to), true))
+			} else {
+				// add as unidirectional
+				acc + (((from, to), false))
+			}
+		}
+	}
 }

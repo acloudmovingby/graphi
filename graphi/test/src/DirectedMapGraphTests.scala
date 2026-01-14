@@ -335,5 +335,20 @@ object DirectedMapGraphTests extends TestSuite {
 			assert(!g.hasEdge("A", "B"))
 			assert(!g.hasEdge("B", "A"))
 		}
+
+		test("uniqueEdgesWithDirection") {
+			// create a graph with both bidirectional edges and unidirectional edges.
+			var g = new DirectedMapGraph[String]()
+			g = g.addNode("A")
+			g = g.addNode("B")
+			g = g.addNode("C")
+			g = g.addEdge("A", "B")
+			g = g.addEdge("B", "A") // bidirectional between A and B
+			g = g.addEdge("A", "C") // unidirectional from A to C
+			val edges = g.uniqueEdgesWithDirection
+			assert(edges.size == 2)
+			assert(edges.contains((("A", "B"), true)) ^ edges.contains((("B", "A"), true))) // bidirectional edge
+			assert(edges.contains((("A", "C"), false))) // unidirectional edge
+		}
 	}
 }

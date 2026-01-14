@@ -68,4 +68,6 @@ class DirectedMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) ext
 		val updatedAdjMap = adjMap + (from -> updatedNeighbors)
 		constructNewThis(updatedAdjMap)
 	}
+
+	override def toString: String = s"DirectedGraph($adjMap)"
 }

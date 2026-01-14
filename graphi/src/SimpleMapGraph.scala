@@ -49,4 +49,6 @@ class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) exten
 		val updatedAdjMap = adjMap ++ Seq(updatedFrom, updatedTo)
 		constructNewThis(updatedAdjMap)
 	}
+
+	override def toString: String = s"SimpleGraph($adjMap)"
 }
