@@ -1,5 +1,3 @@
-package graphi.test
-
 import utest.*
 
 import graphi.{SimpleMapGraph, DirectedMapGraph}

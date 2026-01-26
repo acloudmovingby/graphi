@@ -1,9 +1,7 @@
-package graphi.test
-
 import utest.*
 
 import graphi.DirectedMapGraph
-import graphi.test.TestCommonCode.testIsolates
+import TestCommonCode.testIsolates
 
 object DirectedMapGraphTests extends TestSuite {
 	def tests = Tests {
