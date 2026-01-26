@@ -1,3 +1,5 @@
 .bsp
 .idea
 out
+.scala-build
+.scala-build/
