@@ -6,7 +6,9 @@ package graphi
  * @param adjMap The adjacency map representing the graph
  * @tparam A The type of the nodes in the graph
  */
-class DirectedMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) extends graphi.MapGraph[A, DirectedMapGraph[A]] {
+class DirectedMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) extends MapGraph[A] {
+	type This = DirectedMapGraph[A]
+
 	// boilerplate to help inheritance + immutability work correctly, probably should be using typeclasses somehow but couldn't figure it out
 	override protected def returnThis: DirectedMapGraph[A] = this
 
@@ -39,17 +41,17 @@ class DirectedMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) ext
 
 	// Unique to DirectedMapGraph
 
-    /** Returns the set of successor nodes (i.e., nodes directly reachable from the given node).
-	  * Throws NoSuchElementException if the node doesn't exist.
-	  */
+	/** Returns the set of successor nodes (i.e., nodes directly reachable from the given node).
+	 * Throws NoSuchElementException if the node doesn't exist.
+	 */
 	def getSuccessors(node: A): Set[A] = {
 		adjMap.getOrElse(node, throw new NoSuchElementException(s"The node $node doesn't exist"))
 	}
 
 	/** Returns the set of predecessor nodes (i.e., nodes that can reach the given node directly).
 	 * Currently O(E) where E = number of edges, since we have to scan the whole adjacency map.
-	  * Throws NoSuchElementException if the node doesn't exist.
-	  */
+	 * Throws NoSuchElementException if the node doesn't exist.
+	 */
 	def getPredecessors(node: A): Set[A] = {
 		if (!adjMap.contains(node)) throw new NoSuchElementException(s"The node $node doesn't exist")
 		adjMap.filter { case (_, neighbors) => neighbors.contains(node) }.keys.toSet
