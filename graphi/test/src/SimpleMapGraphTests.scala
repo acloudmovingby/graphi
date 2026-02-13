@@ -1,7 +1,8 @@
 import utest.*
-
 import graphi.SimpleMapGraph
 import TestCommonCode.testIsolates
+
+import scala.collection.immutable.HashMap
 
 object SimpleMapGraphTests extends TestSuite {
 	def tests = Tests {
@@ -264,6 +265,78 @@ object SimpleMapGraphTests extends TestSuite {
 			} catch {
 				case _: NoSuchElementException => assert(true)
 				case _: Throwable => assert(false)
+			}
+		}
+
+		test("depth first search") {
+			try {
+				val g = new SimpleMapGraph[Int]()
+				g.depthFirstSearch(1)
+				assert(false) //
+			} catch {
+				case _: NoSuchElementException => assert(true)
+				case _: Throwable => assert(false)
+			}
+
+			val g2 = new SimpleMapGraph[String]()
+				.addNode("A")
+				.addNode("B")
+				.addNode("C")
+				.addNode("D")
+				.addEdge("A", "B")
+				.addEdge("B", "C")
+				.addEdge("C", "D")
+				.addEdge("A", "D")
+
+			val result = g2.depthFirstSearch("A").toIndexedSeq
+			assert(result.size == 4)
+			assert(result.toSet.size == 4) // assert all unique
+			val (ixA, ixB, ixC, ixD) = (result.indexOf("A"), result.indexOf("B"), result.indexOf("C"), result.indexOf("D"))
+			assert(ixA < ixB)
+			assert(ixA < ixC)
+			assert(ixA < ixD)
+			assert(ixB < ixC)
+
+			val g3 = new SimpleMapGraph[Int](HashMap(0 -> Set(1, 2, 3), 5 -> Set(), 1 -> Set(), 6 -> Set(), 2 -> Set(6, 7), 7 -> Set(), 3 -> Set(4, 5), 8 -> Set(), 4 -> Set(8)))
+			val result3 = g3.depthFirstSearch(0).toIndexedSeq
+			assert(result3.size == 9)
+			assert(result3.toSet.size == 9) // assert all unique
+		}
+
+		test("depth first search (all components)") {
+			// single node
+			val g1 = new SimpleMapGraph[String]().addNode("A")
+			val dfs1 = g1.depthFirstSearchAllComponents("A")
+			assert(dfs1.size == 1 && dfs1.head.size == 1 && dfs1.head.head == "A")
+
+			// two disconnected nodes
+			val g2 = g1.addNode("B")
+			g2.depthFirstSearchAllComponents("A") match {
+				case ("A" :: Nil) :: ("B" :: Nil) :: Nil => assert(true)
+				case _ => assert(false)
+			}
+
+			// two small trees
+			val g3 = g2
+				.addNode("C")
+				.addNode("D")
+				.addNode("E")
+				.addEdge("A", "B")
+				.addEdge("A", "C")
+				.addEdge("D", "E")
+
+			/*
+			    A      D
+			    |\     |
+			    B C    E
+			 */
+
+			val de = ("D" :: "E" :: Nil) :: Nil
+			g3.depthFirstSearchAllComponents("A") match {
+				// Right now I'm not requiring any specific ordering, but the D -- E component will definitely be second
+				case ("A" :: "B" :: "C" :: Nil) :: de => assert(true)
+				case ("A" :: "C" :: "B" :: Nil) :: de => assert(true)
+				case _ => assert(false)
 			}
 		}
 	}

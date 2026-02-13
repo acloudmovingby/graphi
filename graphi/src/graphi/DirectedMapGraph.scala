@@ -26,7 +26,7 @@ class DirectedMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) ext
 		adjMap + fromTo
 	}
 
-	override def getEdges: Set[(A, A)] = {
+	private lazy val _edges = {
 		val edges = scala.collection.mutable.Set[(A, A)]()
 		for {
 			(from, neighbors) <- adjMap
@@ -34,6 +34,8 @@ class DirectedMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) ext
 		} edges.add((from, to))
 		edges.toSet
 	}
+
+	override def getEdges: Set[(A, A)] = _edges
 
 	override def toDot: String = toDotInternal(directed = true)
 

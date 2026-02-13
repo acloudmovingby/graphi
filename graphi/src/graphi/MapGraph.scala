@@ -1,5 +1,7 @@
 package graphi
 
+import scala.collection.mutable
+
 /**
  * A base trait for immutable graph implementations using a Map-based adjacency list.
  * Nodes are of type A. Edges are unweighted.
@@ -23,6 +25,8 @@ trait MapGraph[A] {
 	def nodeCount: Int = adjMap.size
 
 	def edgeCount: Int
+	
+	lazy val nodes: Seq[A] = adjMap.keys.toSeq
 
 	// helper methods for subclasses
 	protected def toDotInternal(directed: Boolean): String = {
@@ -128,18 +132,71 @@ trait MapGraph[A] {
 	 * So, for example, if graph contains edges (A,B) and (B,A), this may return either ((A,B), true) or ((B, A), true) 
 	 * but not both. */
 	def uniqueEdgesWithDirection: Set[((A, A), Boolean)] = {
-		getEdges.foldLeft(Set[((A, A), Boolean)]()) { (acc, edge) =>
-			val (from, to) = edge
-			if (acc.exists { case ((f, t), _) => (f == to && t == from) }) {
-				// already have the reverse edge recorded as bidirectional
-				acc
-			} else if (hasEdge(to, from)) {
-				// add as bidirectional
-				acc + (((from, to), true))
-			} else {
-				// add as unidirectional
-				acc + (((from, to), false))
+		val result = mutable.Set[((A, A), Boolean)]()
+		val processedPairs = mutable.Set[(A, A)]() // Stores canonical (node1, node2) where node1.hashCode <= node2.hashCode
+
+		for {
+			(from, neighbors) <- adjMap
+			to <- neighbors
+		} {
+			// Create a canonical pair to avoid processing (A,B) and then (B,A) separately
+			val (node1, node2) = if (from.hashCode() <= to.hashCode()) (from, to) else (to, from)
+
+			if (!processedPairs.contains((node1, node2))) {
+				processedPairs.add((node1, node2))
+
+				val isBidirectional = hasEdge(to, from)
+				result.addOne(((from, to), isBidirectional))
 			}
 		}
+		result.toSet
+	}
+
+	/**
+	 * Lazily explores connected component in depth first fashion
+	 * */
+	def depthFirstSearch(startNode: A): List[A] = {
+		val visited: mutable.Set[A] = mutable.Set.empty
+
+		// TODO make this tail-recursive
+		def loop(stack: List[A]): List[A] = stack match {
+			case Nil => List.empty
+			case head :: tail if visited.contains(head) => Nil
+			case head :: tail =>
+				visited += head
+				val unvisitedNeighbors = this.getNeighbors(head).diff(visited).toList
+				val newStack = unvisitedNeighbors ++ tail
+				head :: loop(newStack)
+		}
+
+		loop(startNode :: Nil)
+	}
+
+	/** Each top level LazyList represents a connected component */
+	def depthFirstSearchAllComponents(startNode: A): List[List[A]] = {
+		val visited: mutable.Set[A] = mutable.Set.empty
+		val unvisited = adjMap.keySet.to(mutable.Set)
+
+		// TODO make this tail-recursive
+		// this is essentially the same as depthFirstSearch above, there's undoubtedly a way to combine these
+		def innerLoop(stack: List[A]): List[A] = stack match {
+			case Nil => List.empty
+			case head :: tail if visited.contains(head) => Nil
+			case head :: tail =>
+				visited += head
+				unvisited -= head
+				val unvisitedNeighbors = this.getNeighbors(head).diff(visited).toList
+				val newStack = unvisitedNeighbors ++ tail
+				head :: innerLoop(newStack)
+		}
+
+		def outerLoop(start: A): List[List[A]] = {
+			val component = innerLoop(start :: Nil)
+			if (unvisited.nonEmpty) {
+				component :: outerLoop(unvisited.head)
+			} else component :: Nil
+		}
+		
+		outerLoop(startNode)
 	}
 }
