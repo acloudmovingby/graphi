@@ -51,6 +51,8 @@ trait MapGraph[A] {
 
 	// public methods with implementations
 
+	def empty: This = constructNewThis(Map.empty)
+
 	/** Returns a graph with the node added, unless it already exists in which it returns `this` */
 	def addNode(node: A): This = {
 		if (adjMap.contains(node)) returnThis
