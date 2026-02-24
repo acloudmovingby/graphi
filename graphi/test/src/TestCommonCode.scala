@@ -1,9 +1,9 @@
 import utest.*
 
-import graphi.{SimpleMapGraph, DirectedMapGraph}
+import graphi.{MapGraph, SimpleMapGraph, DirectedMapGraph}
 
 object TestCommonCode {
-	def testIsolates(graph: SimpleMapGraph[String] | DirectedMapGraph[String]): Unit = {
+	def testIsolates(graph: MapGraph[String]): Unit = {
 		var g = graph
 		assert(g.isolates.isEmpty)
 		g = g.addNode("A")

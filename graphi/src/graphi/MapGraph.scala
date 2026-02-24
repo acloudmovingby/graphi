@@ -1,24 +1,32 @@
 package graphi
 
+import scala.collection.mutable
+
 /**
- * A base trait for immutable graph implementations using a map-based adjacency list.
+ * A base trait for immutable graph implementations using a Map-based adjacency list.
  * Nodes are of type A. Edges are unweighted.
- * A must be a type that supports equality and hashing (e.g., Int, String, case class).
  *
- * @tparam B The concrete graph type extending this trait (allows methods to return their own type in builder pattern)
- * @tparam A The type of the nodes in the graph
+ * @tparam A The type of the nodes in the graph. Must support equality/hashing since it's the key of the internal Map.
  */
-trait MapGraph[A, B] {
+trait MapGraph[A] {
+
+	// The concrete graph type extending this trait (allows methods to return their own type in builder pattern)
+	type This <: MapGraph[A]
 
 	val adjMap: Map[A, Set[A]]
 
-    // protected methods to be implemented by subclasses
-	protected def returnThis: B
-	protected def constructNewThis(adjMap: Map[A, Set[A]]): B
+	// protected methods to be implemented by subclasses
+	protected def returnThis: This
+
+	protected def constructNewThis(adjMap: Map[A, Set[A]]): This
+
 	protected def addEdgeInternal(from: A, to: A): Map[A, Set[A]]
 
 	def nodeCount: Int = adjMap.size
+
 	def edgeCount: Int
+	
+	lazy val nodes: Seq[A] = adjMap.keys.toSeq
 
 	// helper methods for subclasses
 	protected def toDotInternal(directed: Boolean): String = {
@@ -36,12 +44,17 @@ trait MapGraph[A, B] {
 
 	// unimplemented public methods
 	def toDot: String
+
 	def getEdges: Set[(A, A)]
-	def removeEdge(from: A, to: A): B
+
+	def removeEdge(from: A, to: A): This
 
 	// public methods with implementations
+
+	def empty: This = constructNewThis(Map.empty)
+
 	/** Returns a graph with the node added, unless it already exists in which it returns `this` */
-	def addNode(node: A): B = {
+	def addNode(node: A): This = {
 		if (adjMap.contains(node)) returnThis
 		else constructNewThis(adjMap + (node -> Set()))
 	}
@@ -50,7 +63,7 @@ trait MapGraph[A, B] {
 	 * Returns a graph with the edge added. If the edge already exists, returns `this`.
 	 * Throws NoSuchElementException if either node doesn't exist.
 	 */
-	def addEdge(from: A, to: A): B = {
+	def addEdge(from: A, to: A): This = {
 		if (!adjMap.contains(from)) throw new NoSuchElementException(s"The node $from doesn't exist")
 		else if (!adjMap.contains(to)) throw new NoSuchElementException(s"The node $to doesn't exist")
 		else if (adjMap(from).contains(to)) returnThis // edge already exists
@@ -99,7 +112,7 @@ trait MapGraph[A, B] {
 		}
 	}
 
-	def clone(nodeCloneFunction: A => A): B = {
+	def clone(nodeCloneFunction: A => A): This = {
 		// create a mapping from old nodes to new nodes
 		val oldToNew = adjMap.keys.map(n => n -> nodeCloneFunction(n)).toMap
 		// create new adjacency map with cloned nodes
@@ -109,30 +122,83 @@ trait MapGraph[A, B] {
 		constructNewThis(newAdjMap)
 	}
 
-	/** Set of nodes that have no edges (in or out)  */
+	/** Set of nodes that have no edges (in or out) */
 	def isolates: Set[A] = {
 		val allNodes = adjMap.keys.toSet
 		val hasOutEdge = adjMap.filter { case (_, neighbors) => neighbors.nonEmpty }.keySet
 		val hasInEdge = adjMap.values.toSet.flatten
 		allNodes -- hasOutEdge -- hasInEdge
 	}
-	
+
 	/** Get edges, but for each edge return true if it is bidirectional and false if not. Removes redundant edges.
 	 * So, for example, if graph contains edges (A,B) and (B,A), this may return either ((A,B), true) or ((B, A), true) 
 	 * but not both. */
 	def uniqueEdgesWithDirection: Set[((A, A), Boolean)] = {
-		getEdges.foldLeft(Set[((A, A), Boolean)]()) { (acc, edge) =>
-			val (from, to) = edge
-			if (acc.exists { case ((f, t), _) => (f == to && t == from) }) {
-				// already have the reverse edge recorded as bidirectional
-				acc
-			} else if (hasEdge(to, from)) {
-				// add as bidirectional
-				acc + (((from, to), true))
-			} else {
-				// add as unidirectional
-				acc + (((from, to), false))
+		val result = mutable.Set[((A, A), Boolean)]()
+		val processedPairs = mutable.Set[(A, A)]() // Stores canonical (node1, node2) where node1.hashCode <= node2.hashCode
+
+		for {
+			(from, neighbors) <- adjMap
+			to <- neighbors
+		} {
+			// Create a canonical pair to avoid processing (A,B) and then (B,A) separately
+			val (node1, node2) = if (from.hashCode() <= to.hashCode()) (from, to) else (to, from)
+
+			if (!processedPairs.contains((node1, node2))) {
+				processedPairs.add((node1, node2))
+
+				val isBidirectional = hasEdge(to, from)
+				result.addOne(((from, to), isBidirectional))
 			}
 		}
+		result.toSet
+	}
+
+	/**
+	 * Lazily explores connected component in depth first fashion
+	 * */
+	def depthFirstSearch(startNode: A): List[A] = {
+		val visited: mutable.Set[A] = mutable.Set.empty
+
+		// TODO make this tail-recursive
+		def loop(stack: List[A]): List[A] = stack match {
+			case Nil => List.empty
+			case head :: tail if visited.contains(head) => Nil
+			case head :: tail =>
+				visited += head
+				val unvisitedNeighbors = this.getNeighbors(head).diff(visited).toList
+				val newStack = unvisitedNeighbors ++ tail
+				head :: loop(newStack)
+		}
+
+		loop(startNode :: Nil)
+	}
+
+	/** Each top level LazyList represents a connected component */
+	def depthFirstSearchAllComponents(startNode: A): List[List[A]] = {
+		val visited: mutable.Set[A] = mutable.Set.empty
+		val unvisited = adjMap.keySet.to(mutable.Set)
+
+		// TODO make this tail-recursive
+		// this is essentially the same as depthFirstSearch above, there's undoubtedly a way to combine these
+		def innerLoop(stack: List[A]): List[A] = stack match {
+			case Nil => List.empty
+			case head :: tail if visited.contains(head) => Nil
+			case head :: tail =>
+				visited += head
+				unvisited -= head
+				val unvisitedNeighbors = this.getNeighbors(head).diff(visited).toList
+				val newStack = unvisitedNeighbors ++ tail
+				head :: innerLoop(newStack)
+		}
+
+		def outerLoop(start: A): List[List[A]] = {
+			val component = innerLoop(start :: Nil)
+			if (unvisited.nonEmpty) {
+				component :: outerLoop(unvisited.head)
+			} else component :: Nil
+		}
+		
+		outerLoop(startNode)
 	}
 }

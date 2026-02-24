@@ -6,9 +6,13 @@ package graphi
  * @param adjMap
  * @tparam A The type of the nodes in the graph
  */
-class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) extends MapGraph[A, SimpleMapGraph[A]] {
+class SimpleMapGraph[A](val adjMap: Map[A, Set[A]] = Map.empty[A, Set[A]]) extends MapGraph[A] {
+
+	type This = SimpleMapGraph[A]
+
 	// boilerplate to help inheritance work correctly, probably should be using typeclasses somehow but couldn't figure it out
 	override protected def returnThis: SimpleMapGraph[A] = this
+
 	override protected def constructNewThis(adjMap: Map[A, Set[A]]): SimpleMapGraph[A] = new SimpleMapGraph[A](adjMap)
 
 	// For undirected graphs, we count each bidirectional edge only once (hence dividing by 2)
