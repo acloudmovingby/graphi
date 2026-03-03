@@ -1,5 +1,6 @@
 package graphi
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 /**
@@ -13,19 +14,19 @@ trait MapGraph[A] {
 	// The concrete graph type extending this trait (allows methods to return their own type in builder pattern)
 	type This <: MapGraph[A]
 
-	val adjMap: Map[A, Set[A]]
+	val adjMap: Map[A, List[A]]
 
 	// protected methods to be implemented by subclasses
 	protected def returnThis: This
 
-	protected def constructNewThis(adjMap: Map[A, Set[A]]): This
+	protected def constructNewThis(adjMap: Map[A, List[A]]): This
 
-	protected def addEdgeInternal(from: A, to: A): Map[A, Set[A]]
+	protected def addEdgeInternal(from: A, to: A): Map[A, List[A]]
 
 	def nodeCount: Int = adjMap.size
 
 	def edgeCount: Int
-	
+
 	lazy val nodes: Seq[A] = adjMap.keys.toSeq
 
 	// helper methods for subclasses
@@ -45,7 +46,7 @@ trait MapGraph[A] {
 	// unimplemented public methods
 	def toDot: String
 
-	def getEdges: Set[(A, A)]
+	def getEdges: Seq[(A, A)]
 
 	def removeEdge(from: A, to: A): This
 
@@ -56,7 +57,7 @@ trait MapGraph[A] {
 	/** Returns a graph with the node added, unless it already exists in which it returns `this` */
 	def addNode(node: A): This = {
 		if (adjMap.contains(node)) returnThis
-		else constructNewThis(adjMap + (node -> Set()))
+		else constructNewThis(adjMap + (node -> List()))
 	}
 
 	/**
@@ -73,8 +74,27 @@ trait MapGraph[A] {
 	/** Returns true if there is an edge between the two nodes. Throws NoSuchElementException if either node doesn't exist. */
 	def hasEdge(from: A, to: A): Boolean = adjMap.get(from).exists(_.contains(to))
 
-	/** Returns the set of neighbors of the given node. Throws NoSuchElementException if the node doesn't exist. */
-	def getNeighbors(node: A): Set[A]
+	/** Returns the (out) neighbors of the given node. Throws NoSuchElementException if the node doesn't exist. */
+	def getNeighbors(node: A): List[A]
+
+	private val inNeighborsCache: mutable.Map[A, List[A]] = {
+		val cache = mutable.Map[A, List[A]]()
+		for {
+			(node, neighbors) <- adjMap
+			neighbor <- neighbors
+		} {
+			cache.updateWith(neighbor) {
+				case Some(existing) => Some(node :: existing)
+				case None => Some(List(node))
+			}
+		}
+		cache
+	}
+
+	def getInNeighbors(node: A): List[A] = {
+		if (!adjMap.contains(node)) throw new NoSuchElementException(s"The node $node doesn't exist")
+		inNeighborsCache.getOrElse(node, List())
+	}
 
 	def djikstra(start: A, end: A): Option[(List[A], Int)] = {
 		if (!adjMap.contains(start)) throw new NoSuchElementException(s"The node $start doesn't exist")
@@ -112,28 +132,18 @@ trait MapGraph[A] {
 		}
 	}
 
-	def clone(nodeCloneFunction: A => A): This = {
-		// create a mapping from old nodes to new nodes
-		val oldToNew = adjMap.keys.map(n => n -> nodeCloneFunction(n)).toMap
-		// create new adjacency map with cloned nodes
-		val newAdjMap = adjMap.map { case (node, neighbors) =>
-			oldToNew(node) -> neighbors.map(oldToNew)
-		}
-		constructNewThis(newAdjMap)
-	}
-
 	/** Set of nodes that have no edges (in or out) */
 	def isolates: Set[A] = {
 		val allNodes = adjMap.keys.toSet
 		val hasOutEdge = adjMap.filter { case (_, neighbors) => neighbors.nonEmpty }.keySet
-		val hasInEdge = adjMap.values.toSet.flatten
+		val hasInEdge = adjMap.values.toSeq.flatten
 		allNodes -- hasOutEdge -- hasInEdge
 	}
 
 	/** Get edges, but for each edge return true if it is bidirectional and false if not. Removes redundant edges.
 	 * So, for example, if graph contains edges (A,B) and (B,A), this may return either ((A,B), true) or ((B, A), true) 
 	 * but not both. */
-	def uniqueEdgesWithDirection: Set[((A, A), Boolean)] = {
+	def uniqueEdgesWithDirection: Seq[((A, A), Boolean)] = {
 		val result = mutable.Set[((A, A), Boolean)]()
 		val processedPairs = mutable.Set[(A, A)]() // Stores canonical (node1, node2) where node1.hashCode <= node2.hashCode
 
@@ -151,54 +161,128 @@ trait MapGraph[A] {
 				result.addOne(((from, to), isBidirectional))
 			}
 		}
-		result.toSet
+		result.toSeq
 	}
 
 	/**
-	 * Lazily explores connected component in depth first fashion
+	 * Depth first search
 	 * */
 	def depthFirstSearch(startNode: A): List[A] = {
 		val visited: mutable.Set[A] = mutable.Set.empty
 
-		// TODO make this tail-recursive
-		def loop(stack: List[A]): List[A] = stack match {
-			case Nil => List.empty
-			case head :: tail if visited.contains(head) => Nil
+		@tailrec
+		def loop(stack: List[A], result: List[A]): List[A] = stack match {
+			case Nil =>
+				result
+			case head :: tail if visited.contains(head) =>
+				result
 			case head :: tail =>
 				visited += head
-				val unvisitedNeighbors = this.getNeighbors(head).diff(visited).toList
+				val unvisitedNeighbors = this.getNeighbors(head).filterNot(visited.contains)
 				val newStack = unvisitedNeighbors ++ tail
-				head :: loop(newStack)
+				loop(newStack, head :: result)
 		}
 
-		loop(startNode :: Nil)
+		loop(startNode :: Nil, Nil).reverse
 	}
 
-	/** Each top level LazyList represents a connected component */
-	def depthFirstSearchAllComponents(startNode: A): List[List[A]] = {
-		val visited: mutable.Set[A] = mutable.Set.empty
-		val unvisited = adjMap.keySet.to(mutable.Set)
+	/**
+	 * How many connected components are there? (Note: not *strongly* connected components)
+	 */
+	def numComponents(): Int = {
+		components().size
+//		val visited: mutable.Set[A] = mutable.Set.empty
+//		val localVisited: mutable.Set[A] = mutable.Set.empty
+//
+//		var componentCount = 0
+//
+//		// as we explore the DFS tree, we'll start by assuming it's an unconnected component but if we encounter an already
+//		// visited node, then we flip this flag to false to not double-count
+//		var newComponent = true
+//
+//		/**
+//		 * Similar to depthFirstSearch but we don't need to actually return the List, we just mark nodes as visited.
+//		 * We'll just call this repeatedly until all nodes are visited.
+//		 */
+//		@tailrec
+//		def dfs(stack: List[A]): Unit = stack match {
+//			case Nil => ()
+//			case head :: tail if localVisited.contains(head) => ()
+//			case head :: tail =>
+//				localVisited += head
+//				val unvisitedNeighbors = this.getNeighbors(head).toList.filter { n =>
+//					if (visited.contains(n)) {
+//						newComponent = false
+//						false
+//					} else true
+//				}
+//				val newStack = unvisitedNeighbors ++ tail
+//				dfs(newStack)
+//		}
+//
+//		for (node <- nodes) {
+//			if (!visited.contains(node)) {
+//				newComponent = true // assume it might be a new component
+//				dfs(node :: Nil)
+//				visited.addAll(localVisited)
+//				localVisited.clear()
+//				if (newComponent) componentCount += 1
+//				println(s"dragon - node=$node localVisited=${localVisited}, visited=${visited}, componentCount=$componentCount")
+//			}
+//		}
+//
+//		componentCount
+	}
 
-		// TODO make this tail-recursive
-		// this is essentially the same as depthFirstSearch above, there's undoubtedly a way to combine these
-		def innerLoop(stack: List[A]): List[A] = stack match {
-			case Nil => List.empty
-			case head :: tail if visited.contains(head) => Nil
+	/** Connected components */
+	def components(): List[List[A]] = {
+		val nodesToComponent = mutable.Map.empty[A, Int]
+		val componentConnections = mutable.Map.empty[Int, mutable.Set[Int]]
+		val visited = mutable.Set.empty[A]
+		var currentComponent = 0
+
+		@tailrec
+		def dfs(stack: List[A], compIdx: Int): Unit = stack match {
+			case Nil => ()
+			case head :: tail if visited.contains(head) =>
+				// If already assigned, record connection
+				nodesToComponent.get(head).foreach { otherComp =>
+					if (otherComp != compIdx) {
+						componentConnections.getOrElseUpdate(compIdx, mutable.Set()).add(otherComp)
+						()
+					}
+				}
+				dfs(tail, compIdx)
 			case head :: tail =>
 				visited += head
-				unvisited -= head
-				val unvisitedNeighbors = this.getNeighbors(head).diff(visited).toList
-				val newStack = unvisitedNeighbors ++ tail
-				head :: innerLoop(newStack)
+				nodesToComponent(head) = compIdx
+				dfs(getNeighbors(head) ++ tail, compIdx)
 		}
 
-		def outerLoop(start: A): List[List[A]] = {
-			val component = innerLoop(start :: Nil)
-			if (unvisited.nonEmpty) {
-				component :: outerLoop(unvisited.head)
-			} else component :: Nil
+		// Initial DFS to assign components and record connections
+		for (node <- nodes) {
+			if (!visited.contains(node)) {
+				dfs(List(node), currentComponent)
+				currentComponent += 1
+			}
 		}
-		
-		outerLoop(startNode)
+
+		// Union-find to merge connected components
+		val parent = (0 until currentComponent).toArray
+		def find(x: Int): Int = if (parent(x) == x) x else { parent(x) = find(parent(x)); parent(x) }
+		def union(x: Int, y: Int): Unit = parent(find(x)) = find(y)
+
+		for ((comp, conns) <- componentConnections; conn <- conns) {
+			union(comp, conn)
+		}
+
+		// Group nodes by their final component parent
+		val groups = mutable.Map.empty[Int, mutable.ListBuffer[A]]
+		for ((node, comp) <- nodesToComponent) {
+			val root = find(comp)
+			groups.getOrElseUpdate(root, mutable.ListBuffer()) += node
+		}
+
+		groups.values.map(_.toList).toList
 	}
 }

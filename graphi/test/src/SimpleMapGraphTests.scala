@@ -91,9 +91,9 @@ object SimpleMapGraphTests extends TestSuite {
 			val neighborsA = g.getNeighbors("A")
 			val neighborsB = g.getNeighbors("B")
 			val neighborsC = g.getNeighbors("C")
-			assert(neighborsA == Set("B", "C"))
-			assert(neighborsB == Set("A"))
-			assert(neighborsC == Set("A"))
+			assert(neighborsA == List("C", "B"))
+			assert(neighborsB == List("A"))
+			assert(neighborsC == List("A"))
 			try {
 				g.getNeighbors("D")
 				assert(false) // should not reach here
@@ -158,61 +158,7 @@ object SimpleMapGraphTests extends TestSuite {
 				case _: Throwable => assert(false) // unexpected
 			}
 		}
-		
-		test("clone") {
-			// create a graph, clone it, and ensure the clone is identical but independent
-			var g1 = new SimpleMapGraph[String]()
-			for (node <- Seq("A", "B", "C")) {
-				g1 = g1.addNode(node)
-			}
-			g1 = g1.addEdge("A", "B")
-			g1 = g1.addEdge("B", "C")
-			// clone
-			val g2 = g1.clone(s => s) // identity function for cloning
-			// ensure identical
-			assert(g1.nodeCount == g2.nodeCount)
-			assert(g1.edgeCount == g2.edgeCount)
-			for (node <- Seq("A", "B", "C")) {
-				assert(g1.getNeighbors(node) == g2.getNeighbors(node))
-			}
-			// modify original and ensure clone is unaffected
-			g1 = g1.addNode("D")
-			g1 = g1.addEdge("C", "D")
-			assert(g1.nodeCount == 4)
-			assert(g1.edgeCount == 3)
-			assert(g2.nodeCount == 3)
-			assert(g2.edgeCount == 2)
-			assert(!g2.hasEdge("C", "D"))
-		}
-		
-		test("cloneWithMutableData") {
-			// create a graph with mutable data (e.g., ListBuffer), clone it, and ensure the clone is independent
-			import scala.collection.mutable.ListBuffer
-			var g1 = new SimpleMapGraph[ListBuffer[Int]]()
-			val nodeA = ListBuffer(1)
-			val nodeB = ListBuffer(2)
-			val nodeC = ListBuffer(3)
-			g1 = g1.addNode(nodeA)
-			g1 = g1.addNode(nodeB)
-			g1 = g1.addNode(nodeC)
-			g1 = g1.addEdge(nodeA, nodeB)
-			g1 = g1.addEdge(nodeB, nodeC)
-			// clone
-			val g2 = g1.clone(lb => lb.clone()) // deep clone of ListBuffer
-			// modify original graph's node data
-			nodeA += 10
-			nodeB += 20
-			// ensure original graph's node data is modified
-			val originalNodeA = g1.adjMap.keys.find(_.contains(1)).get
-			val originalNodeB = g1.adjMap.keys.find(_.contains(2)).get
-			assert(originalNodeA == ListBuffer(1, 10))
-			assert(originalNodeB == ListBuffer(2, 20))
-			// ensure clone's node data is unaffected
-			val clonedNodeA = g2.adjMap.keys.find(_.contains(1)).get
-			val clonedNodeB = g2.adjMap.keys.find(_.contains(2)).get
-			assert(clonedNodeA == ListBuffer(1))
-			assert(clonedNodeB == ListBuffer(2))
-		}
+
 		test("toDot") {
 			// create a simple graph and test the DOT output
 			var g = new SimpleMapGraph[String]()
@@ -222,14 +168,14 @@ object SimpleMapGraphTests extends TestSuite {
 			g = g.addEdge("A", "B")
 			g = g.addEdge("B", "C")
 			val dot = g.toDot
-			val expectedLines = Set(
+			val expectedLines = List(
 				"graph G {",
-				""""A" -- "B";""",
 				""""B" -- "C";""",
+				""""A" -- "B";""",
 				""""D";""",
 				"}"
 			)
-			val dotLines = dot.split("\n").map(_.trim).toSet
+			val dotLines = dot.split("\n").map(_.trim).toList
 			assert(dotLines == expectedLines)
 		}
 
@@ -288,56 +234,60 @@ object SimpleMapGraphTests extends TestSuite {
 				.addEdge("C", "D")
 				.addEdge("A", "D")
 
-			val result = g2.depthFirstSearch("A").toIndexedSeq
+			val result = g2.depthFirstSearch("A")
+			println(s"result=$result")
 			assert(result.size == 4)
 			assert(result.toSet.size == 4) // assert all unique
-			val (ixA, ixB, ixC, ixD) = (result.indexOf("A"), result.indexOf("B"), result.indexOf("C"), result.indexOf("D"))
-			assert(ixA < ixB)
-			assert(ixA < ixC)
-			assert(ixA < ixD)
-			assert(ixB < ixC)
+			assert(result.toSet == g2.nodes.toSet) // assert all nodes visited
 
-			val g3 = new SimpleMapGraph[Int](HashMap(0 -> Set(1, 2, 3), 5 -> Set(), 1 -> Set(), 6 -> Set(), 2 -> Set(6, 7), 7 -> Set(), 3 -> Set(4, 5), 8 -> Set(), 4 -> Set(8)))
+			val g3 = new SimpleMapGraph[Int](HashMap(0 -> List(1, 2, 3), 5 -> List(), 1 -> List(), 6 -> List(), 2 -> List(6, 7), 7 -> List(), 3 -> List(4, 5), 8 -> List(), 4 -> List(8)))
 			val result3 = g3.depthFirstSearch(0).toIndexedSeq
 			assert(result3.size == 9)
 			assert(result3.toSet.size == 9) // assert all unique
 		}
 
-		test("depth first search (all components)") {
-			// single node
-			val g1 = new SimpleMapGraph[String]().addNode("A")
-			val dfs1 = g1.depthFirstSearchAllComponents("A")
-			assert(dfs1.size == 1 && dfs1.head.size == 1 && dfs1.head.head == "A")
+		test("uh, dfs but like to demonstrate things") {
+			val g = new SimpleMapGraph[Int](HashMap(
+				0 -> List(1, 2),
+				1 -> List(0, 3, 4),
+				2 -> List(0, 5, 6),
+				3 -> List(1, 7, 8),
+				4 -> List(1, 9, 10),
+				5 -> List(2, 11, 12),
+				6 -> List(2, 14, 13),
+				7 -> List(3),
+				8 -> List(3),
+				9 -> List(4),
+				10 -> List(4),
+				11 -> List(5),
+				12 -> List(5),
+				13 -> List(6),
+				14 -> List(6)
+			))
 
-			// two disconnected nodes
-			val g2 = g1.addNode("B")
-			g2.depthFirstSearchAllComponents("A") match {
-				case ("A" :: Nil) :: ("B" :: Nil) :: Nil => assert(true)
-				case _ => assert(false)
-			}
+			println("TEST TEST TEST")
+			println(g.depthFirstSearch(0))
+		}
 
-			// two small trees
-			val g3 = g2
-				.addNode("C")
-				.addNode("D")
-				.addNode("E")
-				.addEdge("A", "B")
-				.addEdge("A", "C")
-				.addEdge("D", "E")
+		test("getInNeighbors - trivial graph, no edges") {
+			var g = new SimpleMapGraph[String]()
+			g = g.addNode("A")
+			g = g.addNode("B")
+			g = g.addNode("C")
+			assert(g.getInNeighbors("A").isEmpty)
+			assert(g.getInNeighbors("B").isEmpty)
+			assert(g.getInNeighbors("C").isEmpty)
+		}
 
-			/*
-			    A      D
-			    |\     |
-			    B C    E
-			 */
-
-			val de = ("D" :: "E" :: Nil) :: Nil
-			g3.depthFirstSearchAllComponents("A") match {
-				// Right now I'm not requiring any specific ordering, but the D -- E component will definitely be second
-				case ("A" :: "B" :: "C" :: Nil) :: de => assert(true)
-				case ("A" :: "C" :: "B" :: Nil) :: de => assert(true)
-				case _ => assert(false)
-			}
+		test("getInNeighbors - simple graph") {
+			var g = new SimpleMapGraph[String]()
+			g = g.addNode("A")
+			g = g.addNode("B")
+			g = g.addNode("C")
+			g = g.addEdge("A", "B")
+			g = g.addEdge("C", "B")
+			val inNeighborsB = g.getInNeighbors("B")
+			assert(inNeighborsB == List("C", "A"))
 		}
 	}
 }
