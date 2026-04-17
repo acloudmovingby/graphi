@@ -71,6 +71,18 @@ trait MapGraph[A] {
 		else constructNewThis(addEdgeInternal(from, to))
 	}
 
+	/**
+	 * Returns graph with the given node removed. If the node does not exist, throws NoSuchElementException
+	 */
+	def removeNode(node: A): This = {
+		if (!adjMap.contains(node)) throw new NoSuchElementException(s"The node $node doesn't exist")
+		else {
+			val removedNode = adjMap - node
+			val removedEdges = removedNode.transform { case (_, edges) => edges.filterNot(_ == node) }
+			constructNewThis(removedEdges)
+		}
+	}
+
 	/** Returns true if there is an edge between the two nodes. Throws NoSuchElementException if either node doesn't exist. */
 	def hasEdge(from: A, to: A): Boolean = adjMap.get(from).exists(_.contains(to))
 
@@ -189,50 +201,7 @@ trait MapGraph[A] {
 	/**
 	 * How many connected components are there? (Note: not *strongly* connected components)
 	 */
-	def numComponents(): Int = {
-		components().size
-//		val visited: mutable.Set[A] = mutable.Set.empty
-//		val localVisited: mutable.Set[A] = mutable.Set.empty
-//
-//		var componentCount = 0
-//
-//		// as we explore the DFS tree, we'll start by assuming it's an unconnected component but if we encounter an already
-//		// visited node, then we flip this flag to false to not double-count
-//		var newComponent = true
-//
-//		/**
-//		 * Similar to depthFirstSearch but we don't need to actually return the List, we just mark nodes as visited.
-//		 * We'll just call this repeatedly until all nodes are visited.
-//		 */
-//		@tailrec
-//		def dfs(stack: List[A]): Unit = stack match {
-//			case Nil => ()
-//			case head :: tail if localVisited.contains(head) => ()
-//			case head :: tail =>
-//				localVisited += head
-//				val unvisitedNeighbors = this.getNeighbors(head).toList.filter { n =>
-//					if (visited.contains(n)) {
-//						newComponent = false
-//						false
-//					} else true
-//				}
-//				val newStack = unvisitedNeighbors ++ tail
-//				dfs(newStack)
-//		}
-//
-//		for (node <- nodes) {
-//			if (!visited.contains(node)) {
-//				newComponent = true // assume it might be a new component
-//				dfs(node :: Nil)
-//				visited.addAll(localVisited)
-//				localVisited.clear()
-//				if (newComponent) componentCount += 1
-//				println(s"dragon - node=$node localVisited=${localVisited}, visited=${visited}, componentCount=$componentCount")
-//			}
-//		}
-//
-//		componentCount
-	}
+	def numComponents(): Int = components().size
 
 	/** Connected components */
 	def components(): List[List[A]] = {
