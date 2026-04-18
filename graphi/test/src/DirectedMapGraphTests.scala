@@ -378,5 +378,24 @@ object DirectedMapGraphTests extends TestSuite {
 				assert(result == 1)
 			}
 		}
+
+		test("removeNode - test on a 3 node graph, removing nodes one by one") {
+			val g = new DirectedMapGraph[String]().addNode("A").addNode("B").addNode("C")
+				.addEdge("A", "B").addEdge("B","C").addEdge("A","C").addEdge("C","A")
+			assert(g.nodeCount == 3)
+			assert(g.edgeCount == 4)
+			val g2 = g.removeNode("A")
+			assert(g2.nodeCount == 2)
+			assert(g2.edgeCount == 1)
+			assert(!g2.nodes.contains("A"))
+			val g3 = g2.removeNode("B")
+			assert(g3.nodeCount == 1)
+			assert(g3.edgeCount == 0)
+			assert(!g3.nodes.contains("B"))
+			val g4 = g3.removeNode("C")
+			assert(g4.nodeCount == 0)
+			assert(g4.edgeCount == 0)
+			assert(!g4.nodes.contains("C"))
+		}
 	}
 }
