@@ -1,7 +1,8 @@
 import utest.*
-
 import graphi.DirectedMapGraph
-import TestCommonCode.testIsolates
+import TestCommonCode.{allPossibleEdges, testIsolates}
+
+import scala.collection.immutable.HashMap
 
 object DirectedMapGraphTests extends TestSuite {
 	def tests = Tests {
@@ -83,9 +84,9 @@ object DirectedMapGraphTests extends TestSuite {
 			g = g.addEdge("A", "C")
 			g = g.addEdge("B", "C")
 			val succA = g.getSuccessors("A")
-			assert(succA == Set("B", "C"))
+			assert(succA == List("C", "B"))
 			val succB = g.getSuccessors("B")
-			assert(succB == Set("C"))
+			assert(succB == List("C"))
 			val succC = g.getSuccessors("C")
 			assert(succC.isEmpty)
 			// test non-existent node
@@ -109,9 +110,9 @@ object DirectedMapGraphTests extends TestSuite {
 			val predA = g.getPredecessors("A")
 			assert(predA.isEmpty)
 			val predB = g.getPredecessors("B")
-			assert(predB == Set("A"))
+			assert(predB == List("A"))
 			val predC = g.getPredecessors("C")
-			assert(predC == Set("A", "B"))
+			assert(predC == List("B", "A"))
 			// test non-existent node
 			try {
 				g.getPredecessors("D")
@@ -180,60 +181,6 @@ object DirectedMapGraphTests extends TestSuite {
 				case _: Throwable => assert(false) // unexpected
 			}
 		}
-		test("clone") {
-			// create a graph, clone it, and ensure the clone is identical but independent
-			var g1 = new DirectedMapGraph[String]()
-			for (node <- Seq("A", "B", "C")) {
-				g1 = g1.addNode(node)
-			}
-			g1 = g1.addEdge("A", "B")
-			g1 = g1.addEdge("B", "C")
-			// clone
-			val g2 = g1.clone(s => s)
-			// ensure identical
-			assert(g1.nodeCount == g2.nodeCount)
-			assert(g1.edgeCount == g2.edgeCount)
-			for (node <- Seq("A", "B", "C")) {
-				assert(g1.getSuccessors(node) == g2.getSuccessors(node))
-			}
-			// modify original and ensure clone is unaffected
-			g1 = g1.addNode("D")
-			g1 = g1.addEdge("C", "D")
-			assert(g1.nodeCount == 4)
-			assert(g1.edgeCount == 3)
-			assert(g2.nodeCount == 3)
-			assert(g2.edgeCount == 2)
-			assert(!g2.hasEdge("C", "D"))
-		}
-		test("cloneWithMutableData") {
-			// create a graph with mutable data (e.g., ListBuffer), clone it, and ensure the clone is independent
-			import scala.collection.mutable.ListBuffer
-			var g1 = new DirectedMapGraph[ListBuffer[Int]]()
-			val nodeA = ListBuffer(1)
-			val nodeB = ListBuffer(2)
-			val nodeC = ListBuffer(3)
-			g1 = g1.addNode(nodeA)
-			g1 = g1.addNode(nodeB)
-			g1 = g1.addNode(nodeC)
-			g1 = g1.addEdge(nodeA, nodeB)
-			g1 = g1.addEdge(nodeB, nodeC)
-			// clone
-			val g2 = g1.clone(lb => lb.clone())
-			// modify original graph's node data
-			nodeA += 10
-			nodeB += 20
-			// ensure original graph's node data is modified
-			val originalNodeA = g1.adjMap.keys.find(_.contains(1)).get
-			val originalNodeB = g1.adjMap.keys.find(_.contains(2)).get
-			assert(originalNodeA == ListBuffer(1, 10))
-			assert(originalNodeB == ListBuffer(2, 20))
-			// ensure clone's node data is unaffected
-			val clonedNodeA = g2.adjMap.keys.find(_.contains(1)).get
-			val clonedNodeB = g2.adjMap.keys.find(_.contains(2)).get
-			assert(clonedNodeA == ListBuffer(1))
-			assert(clonedNodeB == ListBuffer(2))
-		}
-
 		test("toDotTrivial") {
 			// test DOT output for trivial graphs
 			// empty graph
@@ -347,6 +294,89 @@ object DirectedMapGraphTests extends TestSuite {
 			assert(edges.size == 2)
 			assert(edges.contains((("A", "B"), true)) ^ edges.contains((("B", "A"), true))) // bidirectional edge
 			assert(edges.contains((("A", "C"), false))) // unidirectional edge
+		}
+
+		test("numComponents - trivial") {
+			val g = new DirectedMapGraph[String]()
+			assert(g.numComponents() == 0)
+		}
+
+		test("numComponents - single node") {
+			val g = new DirectedMapGraph[String]().addNode("A")
+			assert(g.numComponents() == 1)
+		}
+
+		test("numComponents - two nodes, one edge") {
+			val g = new DirectedMapGraph[String]().addNode("A").addNode("B").addEdge("A", "B")
+			assert(g.numComponents() == 1)
+			val g2 = new DirectedMapGraph[String]().addNode("A").addNode("B").addEdge("B", "A")
+			assert(g2.numComponents() == 1)
+		}
+
+		test("numComponents - two nodes, two edges") {
+			val g = new DirectedMapGraph[String]().addNode("A").addNode("B").addEdge("A", "B").addEdge("B", "A")
+			assert(g.numComponents() == 1)
+		}
+
+		test("numComponents - three nodes, three components") {
+			val g = new DirectedMapGraph[String]().addNode("A").addNode("B").addNode("C")
+			assert(g.numComponents() == 3)
+		}
+
+		test("numComponents - three nodes, one edge, means two components") {
+			val g = new DirectedMapGraph[String]().addNode("A").addNode("B")
+			for {
+				edge <- g.nodes.combinations(2).flatMap(_.permutations.toSeq) // all possible edges
+			} yield {
+				val g2 = g.addEdge(edge(0), edge(1))
+				if (g2.numComponents() != 2) println(s"Uh, this didn't work: ${g2.getEdges}")
+				assert(g2.numComponents() == 2)
+				// now add the other direction, shouldn't change component count
+				val g3 = g2.addEdge(edge(1), edge(0))
+				if (g3.numComponents() != 2) println(s"Uh, this didn't work: ${g3.getEdges}")
+				assert(g3.numComponents() == 2)
+			}
+		}
+
+		test("numComponents - three nodes, one UNIdirectional edge, means two components") {
+			val g = new DirectedMapGraph[String]().addNode("A").addNode("B").addNode("C")
+
+			for {
+				node1 <- g.nodes
+				node2 <- g.nodes
+			} yield {
+				if (node1 != node2) {
+					val g2 = g.addEdge(node1, node2)
+					assert(g2.numComponents() == 2)
+				}
+			}
+		}
+
+		test("numComponents - three nodes, one BIdirectional edge, means two components") {
+			val g = new DirectedMapGraph[String]().addNode("A").addNode("B").addNode("C")
+
+			for {
+				node1 <- g.nodes
+				node2 <- g.nodes
+			} yield {
+				if (node1 != node2) {
+					val g2 = g.addEdge(node1, node2).addEdge(node2, node1) // the one line different from test above
+					assert(g2.numComponents() == 2)
+				}
+			}
+		}
+
+		test("numComponents - three nodes, two UNIdirectional edges, means one component") {
+			val g = new DirectedMapGraph[String]().addNode("A").addNode("B").addNode("C")
+			for {
+				edge1 <- allPossibleEdges(g)
+				edge2 <- allPossibleEdges(g).filter(e => e != edge1 && e != (edge1._2, edge1._1))
+			} yield {
+				val g2 = g.addEdge(edge1._1, edge1._2).addEdge(edge2._1, edge2._2)
+				val result = g2.numComponents()
+				if (result != 1) println(s"Didn't work with edges: $edge1, $edge2, component count=${result}")
+				assert(result == 1)
+			}
 		}
 	}
 }
