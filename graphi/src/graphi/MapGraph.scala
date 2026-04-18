@@ -77,9 +77,11 @@ trait MapGraph[A] {
 	def removeNode(node: A): This = {
 		if (!adjMap.contains(node)) throw new NoSuchElementException(s"The node $node doesn't exist")
 		else {
-			val removedNode = adjMap - node
-			val removedEdges = removedNode.transform { case (_, edges) => edges.filterNot(_ == node) }
-			constructNewThis(removedEdges)
+			// remove the node as a key from the map (i.e. the 'out' edges)
+			var newAdjMap = adjMap - node
+			// then remove from all adjacency lists that referenced that node (i.e. the 'in' edges)
+			newAdjMap = newAdjMap.transform { case (_, edges) => edges.filterNot(_ == node) }
+			constructNewThis(newAdjMap)
 		}
 	}
 
